@@ -1,0 +1,1 @@
+# scopify-startup-evaluator
