@@ -57,10 +57,8 @@ export default function Profilemenu() {
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
           <div className="py-2">
-            <Link href="/profile">
-              <a className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            <Link href="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
                 <FiUser /> <span>View profile</span>
-              </a>
             </Link>
             <button
               onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
