@@ -1,0 +1,72 @@
+{
+  "startups": [
+    {
+      "name": "AlphaAI",
+      "website": "https://alphaai.example.com",
+      "status": "active",
+      "location": "San Francisco, CA",
+      "description": "AI platform for predictive analytics.",
+      "industry": "SaaS",
+      "is_unicorn": false,
+      "founded_year": 2021,
+      "number_of_employees": 25,
+      "sub_categories": ["Machine Learning", "Data Science"],
+      "founders": ["Alice Smith", "Bob Johnson"],
+      "total_funding_raised": 1200000,
+      "funding_stage": "Seed",
+      "total_valuation": 5000000,
+      "tam": 150000000,
+      "arr": 300000,
+      "product": "Predictive insights API",
+      "challenges": "Scaling model training",
+      "differentiator": "Explainable AI core",
+      "competitors": ["BetaML", "GammaData"]
+    },
+    {
+      "name": "BetaHealth",
+      "website": "https://betahealth.example.com",
+      "status": "early_stage",
+      "location": "Boston, MA",
+      "description": "Telehealth platform for chronic care.",
+      "industry": "Healthcare",
+      "is_unicorn": false,
+      "founded_year": 2022,
+      "number_of_employees": 15,
+      "sub_categories": ["Telemedicine"],
+      "founders": ["Carol White"],
+      "total_funding_raised": 800000,
+      "funding_stage": "Pre-seed",
+      "total_valuation": 2000000,
+      "tam": 80000000,
+      "arr": 150000,
+      "product": "Remote monitoring app",
+      "challenges": "Regulatory compliance",
+      "differentiator": "Integrated care workflows",
+      "competitors": ["MediConnect"]
+    }
+  ],
+  "company_information": [
+    {
+      "company_name": "GammaTech",
+      "ai_generated_info": {
+        "overview": "GammaTech builds next-gen IoT sensors.",
+        "strengths": ["Low power consumption", "High accuracy"],
+        "weaknesses": ["High production cost"]
+      },
+      "search_query": "GammaTech IoT overview",
+      "search_timestamp": "2025-09-12T00:00:00Z",
+      "requested_by_id": 1
+    },
+    {
+      "company_name": "DeltaFoods",
+      "ai_generated_info": {
+        "overview": "DeltaFoods offers plant-based meat alternatives.",
+        "market_size": "5B USD",
+        "trends": ["Vegan consumer growth"]
+      },
+      "search_query": "DeltaFoods market analysis",
+      "search_timestamp": "2025-09-12T00:00:00Z",
+      "requested_by_id": 1
+    }
+  ]
+}

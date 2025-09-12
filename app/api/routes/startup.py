@@ -1,15 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.params import Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.api.deps import get_current_active_user, require_admin, require_partner_or_admin
 from app.crud import startup as startup_crud
 from app.db.session import get_db
 from app.schemas.startup import (
+    StartupCreate,
     StartupEvaluationCreate, 
     StartupEvaluationRead, 
     StartupEvaluationUpdate,
-    StartupEvaluationResponse
+    StartupEvaluationResponse,
+    StartupRead
 )
 from app.db.models.user import User, UserRole
 
@@ -51,6 +54,46 @@ def evaluate_startup(
         notes=db_evaluation.evaluation_notes
     )
 
+@router.get("/all", response_model=List[StartupRead])
+def get_startups(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, le=100),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all startups with optional search."""
+    return startup_crud.get_startups(db, skip=skip, limit=limit, search=search)
+
+
+@router.post("/", response_model=StartupRead, status_code=status.HTTP_201_CREATED)
+def create_startup(
+    startup_in: StartupCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_partner_or_admin)
+):
+    """Create a new startup (Partners and Admins only)."""
+    
+    # Check if startup with same name already exists
+    existing_startup = db.query(startup_crud.Startup).filter(
+        startup_crud.Startup.name.ilike(startup_in.name)
+    ).first()
+    
+    if existing_startup:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Startup with name '{startup_in.name}' already exists"
+        )
+    
+    # Create the startup
+    try:
+        db_startup = startup_crud.create_startup(db, startup_in)
+        return db_startup
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create startup: {str(e)}"
+        )
 
 @router.get("/evaluations/my", response_model=List[StartupEvaluationRead])
 def get_my_evaluations(

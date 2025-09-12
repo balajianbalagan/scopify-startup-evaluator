@@ -5,6 +5,20 @@ from sqlalchemy import and_
 from app.db.models.company import CompanyInformation
 from app.schemas.company import CompanyInformationCreate
 
+def get_companies(
+    db: Session, 
+    skip: int = 0, 
+    limit: int = 50, 
+    search: Optional[str] = None
+) -> List[CompanyInformation]:
+    query = db.query(CompanyInformation)
+    
+    if search:
+        query = query.filter(
+            CompanyInformation.company_name.ilike(f"%{search}%")
+        )
+    
+    return query.offset(skip).limit(limit).all()
 
 def create_company_search(
     db: Session, 

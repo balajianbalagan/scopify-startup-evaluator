@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.params import Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.api.deps import get_current_active_user, require_partner_or_admin
 from app.crud import company as company_crud
 from app.db.session import get_db
 from app.schemas.company import (
+    CompanyInformationCreate,
     CompanySearchRequest,
     CompanySearchResponse,
     CompanySearchError,
@@ -16,6 +18,38 @@ from app.services.google_ai_service import google_ai_service
 
 router = APIRouter(prefix="/company", tags=["company"])
 
+@router.post("/", response_model=CompanyInformationRead, status_code=status.HTTP_201_CREATED)
+def create_company_info(
+    company_in: CompanyInformationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_partner_or_admin)
+):
+    """
+    Create a new CompanyInformation record manually.
+    Partners and Admins only.
+    """
+    # Prevent duplicate entries for the same company
+    existing = company_crud.get_company_search_by_name(
+        db, company_in.company_name, current_user.id
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Company info for '{company_in.company_name}' already exists"
+        )
+
+    try:
+        created = company_crud.create_company_search(
+            db,
+            company_in,
+            requested_by_id=current_user.id
+        )
+        return created
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create company info: {str(e)}"
+        )
 
 @router.post("/search", response_model=CompanySearchResponse, status_code=status.HTTP_201_CREATED)
 async def search_company_information(
@@ -145,6 +179,17 @@ def get_company_search(
     
     return db_search
 
+
+@router.get("/all", response_model=List[CompanyInformationRead])
+def get_companies(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, le=100),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all company information with optional search."""
+    return company_crud.get_companies(db, skip=skip, limit=limit, search=search)
 
 @router.delete("/searches/{search_id}")
 def delete_company_search(
