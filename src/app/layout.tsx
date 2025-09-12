@@ -10,6 +10,11 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+       <head>
+        {/* Favicon link */}
+        <link rel="icon" href="/favicon_io/favicon.ico" />
+        {/* Other head elements */}
+      </head>
       <body className="bg-gray-50 min-h-screen">
         <ClientWrapper>{children}</ClientWrapper>
       </body>

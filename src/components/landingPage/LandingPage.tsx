@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useAnimationControls, useDragControls } from "framer-motion";
+import SignIn from "./SignIn";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function LandingPage() {
               <span className="text-yellow-300">with Scopify AI</span>
             </h1>
             <motion.img
-              src="/scopifyyellowlogo.png"
+              src="/logos/scopifyyellowlogo.png"
               alt="Scopify Logo"
               className="hidden md:block w-auto absolute top-[-90] right-97 z-0"
               initial={{ y: 0 }}
@@ -115,58 +116,12 @@ export default function LandingPage() {
         </section>
 
         {/* Right: Sign In Card */}
-        <section
-          id="signin-card"
-          className="w-full max-w-md bg-white/90 rounded-2xl shadow-2xl p-8 flex flex-col items-center"
-        >
-          <h2 className="text-2xl font-bold text-indigo-700 mb-2">Sign in to Scopify</h2>
-          <p className="text-sm text-gray-500 mb-6">Welcome back! Please sign in to your account.</p>
-          <form onSubmit={handleSignIn} className="w-full space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-black"
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-black"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition"
-            >
-              Sign In
-            </button>
-          </form>
-          <div className="mt-4 w-full text-center">
-            <span className="text-gray-600 text-sm">New to Scopify?</span>
-            <button
-              className="ml-2 text-indigo-700 font-semibold hover:underline"
-              onClick={() => router.push("/signup")}
-            >
-              Create an account
-            </button>
-          </div>
-        </section>
+        <SignIn/>
       </main>
 
       {/* Footer */}
       <footer className="w-full text-center text-white/70 py-4 text-xs flex justify-center items-center gap-2">
-        <img src="/scopifyyellowlogo.png" alt="Scopify Logo" className="h-5 w-auto" />
+        <img src="/logos/scopifyyellowlogo.png" alt="Scopify Logo" className="h-5 w-auto" />
         <span>&copy; {new Date().getFullYear()} Scopify. All rights reserved.</span>
       </footer>
 
