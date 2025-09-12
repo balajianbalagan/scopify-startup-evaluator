@@ -13,8 +13,8 @@ def create_database_engine():
     """Create database engine with proper error handling."""
     try:
         engine = create_engine(
-            settings.DATABASE_URL,
-            connect_args={"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {},
+            settings.SCOPIFY_DATABASE_URL,
+            connect_args={"check_same_thread": False} if settings.SCOPIFY_DATABASE_URL.startswith("sqlite") else {},
         )
         # Test the connection
         with engine.connect() as conn:
@@ -22,7 +22,7 @@ def create_database_engine():
         return engine
     except SQLAlchemyError as e:
         print(f"❌ Database connection failed: {e}")
-        print(f"Database URL: {settings.DATABASE_URL}")
+        print(f"Database URL: {settings.SCOPIFY_DATABASE_URL}")
         print("Please check your database configuration and ensure the database is running.")
         sys.exit(1)
     except Exception as e:

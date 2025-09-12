@@ -8,7 +8,7 @@ from app.core.config import settings
 
 class GoogleAIService:
     def __init__(self):
-        self.api_key = settings.GOOGLE_AI_API_KEY
+        self.api_key = settings.SCOPIFY_GOOGLE_AI_API_KEY
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
         
         if not self.api_key:

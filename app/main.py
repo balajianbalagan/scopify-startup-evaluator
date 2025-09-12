@@ -11,10 +11,10 @@ from app.api.deps import get_current_user
 
 
 def create_app() -> FastAPI:
-    print(f"🚀 Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode")
-    print(f"📊 Database URL: {settings.DATABASE_URL}")
+    print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME} in {settings.ENVIRONMENT} mode")
+    print(f"📊 Database URL: {settings.SCOPIFY_DATABASE_URL}")
     
-    application = FastAPI(title=settings.PROJECT_NAME)
+    application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
 
     # Routers
     application.include_router(auth_router)
