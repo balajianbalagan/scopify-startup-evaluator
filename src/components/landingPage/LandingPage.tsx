@@ -1,13 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useAnimationControls, useDragControls } from "framer-motion";
 
 export default function LandingPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const dragControls = useDragControls();
+  const animationControls = useAnimationControls();
+
+  
+  useEffect(() => {
+    const onReset = () => {
+    animationControls.set({
+      x:0,
+      y:16
+    })
+  }
+  animationControls.start({
+    y: [16, -16, 16],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      repeatType: "loop",
+      ease: "easeInOut"
+    }
+  });
+}, [animationControls]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +45,15 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex flex-col">
       {/* Hero Section */}
       <header className="w-full px-8 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="text-3xl font-extrabold text-white tracking-tight">Scopify</span>
-          <span className="ml-2 px-2 py-0.5 rounded bg-white/20 text-white text-xs font-semibold">AI Analyst for Startups</span>
+        {/* Left: Logo + Brand */}
+        <div className="flex items-center gap-3">
+          <span className="font-extrabold text-white text-lg">Scopify</span>
+          <span className="ml-2 px-2 py-0.5 rounded bg-white/20 text-white text-xs font-semibold">
+            AI Analyst for Startups
+          </span>
         </div>
+
+        {/* Right: Get Started */}
         <button
           className="hidden md:inline-block bg-white/10 text-white px-5 py-2 rounded-lg font-medium hover:bg-white/20 transition"
           onClick={() => router.push("/signup")}
@@ -38,15 +65,37 @@ export default function LandingPage() {
       <main className="flex-1 flex flex-col md:flex-row items-center justify-center gap-12 px-6 py-12">
         {/* Left: Hero Text */}
         <section className="flex-1 max-w-xl text-center md:text-left">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg">
-            Unlock Startup Insights<br />
-            <span className="text-yellow-300">with AI</span>
-          </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-8">
-            Scopify empowers founders and investors with instant analytics, benchmarks, and actionable recommendations. 
-            Let AI do the heavy lifting—so you can focus on what matters.
+
+          <div className="relative w-full">
+            <h1 className="ml-8 text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg">
+              Unlock Startup Insights<br />
+              <span className="text-yellow-300">with Scopify AI</span>
+            </h1>
+            <motion.img
+              src="/scopifyyellowlogo.png"
+              alt="Scopify Logo"
+              className="hidden md:block w-auto absolute top-[-90] right-97 z-0"
+              initial={{ y: 0 }}
+               animate={animationControls}
+              drag
+              dragMomentum={false}
+              
+              dragControls={dragControls}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "loop",
+                ease: "easeInOut"
+              }}
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            />
+          </div>
+
+          <p className="ml-8 text-lg md:text-xl text-white/90 mb-8">
+            Scopify empowers founders and investors with instant analytics, benchmarks,
+            and actionable recommendations. Let AI do the heavy lifting—so you can focus on what matters.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+          <div className="ml-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
             <button
               className="bg-yellow-300 text-indigo-800 font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow-200 transition"
               onClick={() => router.push("/signup")}
@@ -116,9 +165,11 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full text-center text-white/70 py-4 text-xs">
-        &copy; {new Date().getFullYear()} Scopify. All rights reserved.
+      <footer className="w-full text-center text-white/70 py-4 text-xs flex justify-center items-center gap-2">
+        <img src="/scopifyyellowlogo.png" alt="Scopify Logo" className="h-5 w-auto" />
+        <span>&copy; {new Date().getFullYear()} Scopify. All rights reserved.</span>
       </footer>
+
     </div>
   );
 }
