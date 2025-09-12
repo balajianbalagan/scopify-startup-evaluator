@@ -8,7 +8,6 @@ export interface LoginCredentials {
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
-  user: User;
   token_type: string;
 }
 
@@ -26,37 +25,49 @@ export interface User {
 }
 
 class ApiService {
+  private currentUser: User | null = null;
+
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(token && { 'Authorization': `Bearer ${token}` })
     };
   }
 
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const formData = new FormData();
-    formData.append('username', credentials.email); // FastAPI OAuth2 expects 'username'
-    formData.append('password', credentials.password);
+    console.log('Attempting login with:', { email: credentials.email });
+    
+    try {
+      const formData = new FormData();
+      formData.append('username', credentials.email);
+      formData.append('password', credentials.password);
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      body: formData,
-    });
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
+
+      // Fetch user data after successful login
+      await this.fetchCurrentUser();
+      
+      return data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
     }
-
-    const data: LoginResponse = await response.json();
-
-    // Save tokens and user info
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    return data;
   }
 
   async register(userData: RegisterData): Promise<User> {
@@ -69,37 +80,62 @@ class ApiService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
       throw new Error(error.detail || 'Registration failed');
     }
 
-    return response.json();
+    const user = await response.json();
+    this.currentUser = user;
+    return user;
   }
 
-  async getMe(): Promise<User> {
+  async fetchCurrentUser(): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired, try refresh
-        await this.refreshToken();
-        return this.getMe(); // Retry after refresh
+        try {
+          await this.refreshToken();
+          return this.fetchCurrentUser();
+        } catch {
+          this.logout();
+          throw new Error('Session expired');
+        }
       }
       throw new Error('Failed to get user info');
     }
 
-    const user: User = await response.json();
-    // Update localStorage in case user info changed
-    localStorage.setItem('user', JSON.stringify(user));
+    const user = await response.json();
+    this.currentUser = user;
     return user;
   }
 
+  getCurrentUser(): User | null {
+    return this.currentUser;
+  }
+
+  async ensureCurrentUser(): Promise<User | null> {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    if (this.isAuthenticated()) {
+      try {
+        return await this.fetchCurrentUser();
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
   async refreshToken(): Promise<void> {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
     if (!refreshToken) {
-      this.logout();
       throw new Error('No refresh token available');
     }
 
@@ -116,24 +152,51 @@ class ApiService {
       throw new Error('Session expired');
     }
 
-    const data: { access_token: string; refresh_token: string } = await response.json();
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
+    const data = await response.json();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+    }
   }
 
   logout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    this.currentUser = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    }
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('access_token');
+    return typeof window !== 'undefined' && !!localStorage.getItem('access_token');
   }
 
-  getUser(): User | null {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+  async healthCheck(): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      return response.ok;
+    } catch (error) {
+      console.error('Health check failed:', error);
+      return false;
+    }
+  }
+
+  // Helper method to get user initials
+  getUserInitials(user: User): string {
+    if (user.email) {
+      const emailParts = user.email.split('@')[0];
+      return emailParts.slice(0, 2).toUpperCase();
+    }
+    return 'U';
+  }
+
+  // Helper method to get display name
+  getDisplayName(user: User): string {
+    if (user.email) {
+      const emailParts = user.email.split('@')[0];
+      return emailParts.charAt(0).toUpperCase() + emailParts.slice(1);
+    }
+    return 'User';
   }
 }
 

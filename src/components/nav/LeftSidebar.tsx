@@ -62,9 +62,7 @@ export default function LeftSidebar() {
           </button>
           {!collapsed && (
             <div className="flex items-center gap-2 px-2">
-              <span className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg shadow">
-                VC
-              </span>
+              
               <span className="text-base text-indigo-700 font-semibold">Hi VC</span>
             </div>
           )}
