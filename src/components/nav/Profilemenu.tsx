@@ -38,8 +38,16 @@ export default function Profilemenu() {
   }, [theme]);
 
   function signOut() {
-    // TODO: wire real sign out
-    alert('Sign out triggered (mock).');
+    // Clear user authentication data
+    try {
+      localStorage.removeItem('scopify.auth'); // Example: Remove auth token
+      sessionStorage.clear(); // Clear session storage
+    } catch (error) {
+      console.error('Error clearing authentication data:', error);
+    }
+
+    // Redirect to the landing page
+    window.location.href = '/';
   }
 
   return (

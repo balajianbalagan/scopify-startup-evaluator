@@ -1,260 +1,387 @@
-// src/components/copilot/CopilotSidebar.tsx
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef, FormEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "./Button";
 
-type Msg = {
-  id: string;
-  role: 'system' | 'agent' | 'user';
+// Initial chat state
+const INITIAL_MESSAGES = [
+  { type: "system" as const, text: "Upload received. Spawning sub-agents…" },
+  { type: "agent" as const, text: "Welcome! How can I assist you today?" },
+];
+
+type Message = {
+  type: "user" | "agent" | "system";
   text: string;
-  time?: string;
 };
 
 export default function CopilotSidebar() {
-  const [open, setOpen] = useState(true);
-  const [width, setWidth] = useState(380);
-  const [messages, setMessages] = useState<Msg[]>(() => [
-    { id: 's1', role: 'system', text: 'Upload received. Spawning sub-agents…', time: 'now' },
-  ]);
-  const [composer, setComposer] = useState('');
-  const [mode, setMode] = useState<'default' | 'benchmarks' | 'risks'>('default');
+  // Sidebar state
+  const [agentOpen, setAgentOpen] = useState(true);
+  const [agentWidth, setAgentWidth] = useState<number>(384); // ~w-96
+  const [resizing, setResizing] = useState(false);
 
-  const composerRef = useRef<HTMLTextAreaElement | null>(null);
-  const messagesRef = useRef<HTMLDivElement | null>(null);
-  const resizing = useRef(false);
+  // Chat state
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [input, setInput] = useState("");
+  const [processing, setProcessing] = useState(false);
 
+  // Refs
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sidebar resizing
   useEffect(() => {
-    if (open) composerRef.current?.focus();
-  }, [open]);
-
-  // scroll to bottom when messages change
-  useEffect(() => {
-    const el = messagesRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
-
-  // mock handler for incoming user input — replace with API later
-  function handleUserInput(input: string, currentMode: typeof mode) {
-    // simple heuristic mock replies
-    const text = input.toLowerCase();
-    if (currentMode === 'benchmarks') {
-      return [
-        `Running EV/ARR and growth cohort comparisons for the provided metrics...`,
-        `EV/ARR: 8x (vs. peer median 6x). Growth: 28% QoQ (top quartile).`,
-      ];
-    }
-    if (currentMode === 'risks') {
-      return [
-        `Scanning for common red flags...`,
-        `Found: ARR inconsistency between slides (2.0M vs 2.5M). Customer concentration: 35% revenue from top client.`,
-      ];
-    }
-    // default mode
-    if (text.includes('summary') || text.includes('summarize')) {
-      return ['Generating concise summary…', 'Summary: strong product-market fit; validate churn cohorts.'];
-    }
-    if (text.includes('help') || text.trim().length < 4) {
-      return ['Type a question about the company or choose a mode (Benchmarks/Risk).'];
-    }
-    // fallback
-    return [`Acknowledged — running ${currentMode} analysis.`, 'Mock result: nothing critical surfaced in this quick pass.'];
-  }
-
-  // send message flow (user -> mock agent replies)
-  function sendMessage() {
-    const text = composer.trim();
-    if (!text) return;
-    const uid = `u${Date.now()}`;
-    setMessages((m) => [...m, { id: uid, role: 'user', text, time: new Date().toISOString() }]);
-    setComposer('');
-
-    // get mock agent replies
-    const replies = handleUserInput(text, mode);
-    replies.forEach((r, idx) => {
-      setTimeout(() => {
-        const aid = `a${Date.now()}${idx}`;
-        setMessages((m) => [...m, { id: aid, role: 'agent', text: r, time: new Date().toISOString() }]);
-      }, 400 + idx * 400);
-    });
-  }
-
-  // keyboard: Cmd/Ctrl+Enter to send
-  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
-
-  // simple resize handler (drag right edge)
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (!resizing.current) return;
-      const next = Math.min(640, Math.max(300, width - e.movementX));
-      setWidth(next);
-    }
-    function onUp() {
-      resizing.current = false;
-      document.body.style.cursor = '';
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+    if (!resizing) return;
+    const onMove = (e: MouseEvent) => {
+      setAgentWidth((w) => {
+        const next = w - e.movementX;
+        return Math.min(640, Math.max(280, next));
+      });
     };
-  }, [width]);
+    const onUp = () => setResizing(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [resizing]);
+
+  // Scroll to bottom on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, processing]);
+
+  // --- Chat Logic ---
+
+  function handleSend(e?: FormEvent) {
+    if (e) e.preventDefault();
+    if (!input.trim() || processing) return;
+    const userMsg = input.trim();
+    addUserMessage(userMsg);
+    setInput("");
+    setProcessing(true);
+    mockAgentResponse(userMsg);
+  }
+
+  function addUserMessage(text: string) {
+    setMessages((msgs) => [...msgs, { type: "user", text }]);
+  }
+
+  function addAgentMessage(text: string) {
+    setMessages((msgs) => [...msgs, { type: "agent", text }]);
+  }
+
+  function mockAgentResponse(userMsg: string) {
+    // Show "Processing request..." after a short delay
+    setTimeout(() => {
+      addAgentMessage("Processing request...");
+      // Replace with mock response after another delay
+      setTimeout(() => {
+        setMessages((msgs) => [
+          ...msgs.slice(0, -1),
+          {
+            type: "agent",
+            text: `Here is a mock response for: "${userMsg}"`,
+          },
+        ]);
+        setProcessing(false);
+      }, 1500);
+    }, 500);
+  }
+
+  function handleNewChat() {
+    setMessages(INITIAL_MESSAGES);
+    setInput("");
+    setProcessing(false);
+  }
+
+  // --- Render ---
 
   return (
     <AnimatePresence>
-      <div className="hidden lg:flex">
-        <motion.aside
-          initial={{ width: 64 }}
-          animate={{ width: open ? width : 64 }}
-          exit={{ width: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-          aria-label="Scopify Copilot"
-          className="relative z-40 flex flex-col bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden"
-          style={{ minHeight: 'calc(100vh - 4rem)' }}
-        >
-          {/* left rail */}
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-white border-r border-gray-100 flex flex-col items-center py-3 gap-3">
-            <button
-              aria-label={open ? 'Collapse copilot' : 'Expand copilot'}
-              title={open ? 'Collapse' : 'Expand'}
-              className="h-10 w-10 rounded-xl hover:bg-gray-100 flex items-center justify-center"
-              onClick={() => setOpen((v) => !v)}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 2v20" stroke="#6366F1" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M5 9l7-7 7 7" stroke="#6366F1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+      <motion.div
+        initial={{ x: 300, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 300, opacity: 0 }}
+        transition={{ duration: 0.25 }}
+        className={`relative flex min-h-[90vh] bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden box-border`}
+        style={{ width: agentOpen ? agentWidth : 56 }}
+        data-testid="agent-panel"
+      >
+        {/* Rail (always visible) */}
+        <SidebarRail agentOpen={agentOpen} setAgentOpen={setAgentOpen} />
 
-            <div className="h-px w-8 bg-gray-200" />
-
-            <button className="h-9 w-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" title="Threads">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M21 15a2 2 0 0 1-2 2H9l-6 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-
-            <button className="h-9 w-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" title="Files">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14 2H6a2 2 0 0 0-2 2v16l4-3h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-
-            <button className="h-9 w-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" title="Settings">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="#374151" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-
-            <div className="mt-auto text-[10px] text-gray-400 rotate-[-90deg] mb-6">Scopify</div>
-          </div>
-
-          {/* expanded content */}
-          <div className="ml-16 flex flex-col min-h-0">
-            <div className="px-4 py-3 border-b bg-indigo-50 flex items-center gap-3">
-              <div className="rounded px-2 py-0.5 text-xs bg-white text-indigo-700 border border-indigo-100">Chat</div>
-              <div className="font-medium text-indigo-800 text-sm">Scopify Agent</div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <ModeButton label="Default" active={mode === 'default'} onClick={() => setMode('default')} />
-                <ModeButton label="Benchmarks" active={mode === 'benchmarks'} onClick={() => setMode('benchmarks')} />
-                <ModeButton label="Risk" active={mode === 'risks'} onClick={() => setMode('risks')} />
-              </div>
-            </div>
-
-            {/* messages: fixed area with internal scroll */}
-            <div
-              ref={messagesRef}
-              className="p-3 overflow-y-auto space-y-3 min-h-0"
-              style={{ maxHeight: 'calc(100vh - 220px)' }} // fixed messages region; composer + header reserved ~220px
-            >
-              {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} text={m.text} />
-              ))}
-            </div>
-
-            {/* composer area (fixed height) */}
-            <div className="border-t p-3 bg-white">
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={composerRef}
-                  value={composer}
-                  onChange={(e) => setComposer(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  placeholder={mode === 'default' ? 'Ask Scopify' : mode === 'benchmarks' ? 'E.g., show EV/ARR comparison' : 'E.g., list top risks'}
-                  className="flex-1 min-h-[44px] max-h-28 resize-none rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  aria-label="Scopify message composer"
+        {/* Expanded content */}
+        <AnimatePresence initial={false}>
+          {agentOpen && (
+            <>
+              <div
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setResizing(true);
+                }}
+                className="absolute -left-1 top-0 h-full w-2 cursor-ew-resize z-20"
+                title="Drag to resize"
+              />
+              <motion.div
+                key="agent-expanded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col min-w-0 overflow-hidden"
+                data-testid="agent-expanded"
+              >
+                <ChatHeader onNewChat={handleNewChat} />
+                <ChatMessages
+                  messages={messages}
+                  processing={processing}
+                  messagesEndRef={messagesEndRef}
                 />
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={sendMessage}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-                    aria-label="Send message"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path d="M22 2L11 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M22 2l-7 20 2-9 9-11z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-sm">Send</span>
-                  </button>
-
-                  <div className="text-xs text-gray-400 px-1">⌘↵ send</div>
-                </div>
-              </div>
-            </div>
-
-            {/* resize handle */}
-            <div
-              onMouseDown={() => {
-                resizing.current = true;
-                document.body.style.cursor = 'ew-resize';
-              }}
-              className="absolute -right-2 top-0 bottom-0 w-4 cursor-ew-resize"
-              aria-hidden
-            />
-          </div>
-        </motion.aside>
-      </div>
+                <ChatInput
+                  input={input}
+                  setInput={setInput}
+                  handleSend={handleSend}
+                  processing={processing}
+                  textareaRef={textareaRef}
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </AnimatePresence>
   );
 }
 
-/* ---------- small UI subcomponents ---------- */
+// --- Subcomponents ---
 
-function ModeButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function SidebarRail({
+  agentOpen,
+  setAgentOpen,
+}: {
+  agentOpen: boolean;
+  setAgentOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className={`px-2 py-1 rounded-md text-xs ${active ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}
-      aria-pressed={active}
+    <div
+      className="w-14 bg-white border-r border-gray-200 flex flex-col items-center py-3 gap-3"
+      data-testid="agent-rail"
     >
-      {label}
-    </button>
+      <button
+        className="h-10 w-10 rounded-xl hover:bg-gray-100 flex items-center justify-center"
+        title="Toggle Agent"
+        onClick={() => setAgentOpen((v) => !v)}
+      >
+        <span className="text-indigo-600 text-xl">★</span>
+      </button>
+      <div className="h-px w-8 bg-gray-200" />
+      <button className="h-9 w-9 rounded-lg hover:bg-gray-100" title="Threads">
+        💬
+      </button>
+      <button className="h-9 w-9 rounded-lg hover:bg-gray-100" title="Files">
+        📎
+      </button>
+      <button className="h-9 w-9 rounded-lg hover:bg-gray-100" title="Settings">
+        ⚙️
+      </button>
+      <div className="mt-auto text-[10px] text-gray-400 rotate-[-90deg] mb-6">
+        Scopify
+      </div>
+    </div>
   );
 }
 
-function MessageBubble({ role, text }: { role: Msg['role']; text: string }) {
-  const base = 'max-w-[86%] rounded-2xl px-3 py-2 text-sm shadow-sm';
-  if (role === 'user') {
-    return (
-      <div className="flex justify-end">
-        <div className={`${base} bg-indigo-600 text-white`}>{text}</div>
-      </div>
-    );
-  }
-  if (role === 'system') {
-    return (
-      <div className="flex justify-center">
-        <div className={`${base} bg-gray-100 text-gray-700`}>{text}</div>
-      </div>
-    );
-  }
-  // agent
+function ChatHeader({ onNewChat }: { onNewChat: () => void }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-semibold text-sm">A</div>
-      <div className={`${base} bg-white text-gray-900 border border-gray-100`}>{text}</div>
+    <div className="flex items-center gap-2 p-3 border-b border-gray-200 bg-indigo-50">
+      <div className="text-sm text-indigo-800 font-medium">Scopify Agent</div>
+      <div className="ml-auto flex items-center gap-2">
+        <select className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white">
+          <option>Default mode</option>
+          <option>Benchmark mode</option>
+          <option>Risk review</option>
+        </select>
+        <Button size="sm" variant="outline" onClick={onNewChat}>
+          New Chat
+        </Button>
+      </div>
     </div>
   );
+}
+
+function ChatMessages({
+  messages,
+  processing,
+  messagesEndRef,
+}: {
+  messages: Message[];
+  processing: boolean;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 min-w-0">
+      {messages.map((msg, idx) =>
+        msg.type === "user" ? (
+          <UserMsg key={idx}>{msg.text}</UserMsg>
+        ) : msg.type === "agent" ? (
+          <AgentMsg key={idx}>{msg.text}</AgentMsg>
+        ) : (
+          <SystemMsg key={idx}>{msg.text}</SystemMsg>
+        )
+      )}
+      {processing && <AgentMsg>Processing request…</AgentMsg>}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+}
+
+function ChatInput({
+  input,
+  setInput,
+  handleSend,
+  processing,
+  textareaRef,
+}: {
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
+  handleSend: (e?: FormEvent) => void;
+  processing: boolean;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+}) {
+  return (
+    <div className="border-t border-gray-200 bg-white p-2" data-testid="command-bar">
+      <form className="flex flex-col gap-3 w-full" onSubmit={handleSend}>
+        <div className="flex items-center gap-3 order-3 w-full" data-testid="command-row">
+          <div className="flex items-center gap-3 text-gray-600">
+            <button
+              type="button"
+              className="h-9 w-9 rounded-lg hover:bg-gray-100"
+              title="Slash commands"
+              tabIndex={-1}
+            >
+              /
+            </button>
+            <button
+              type="button"
+              className="h-9 w-9 rounded-lg hover:bg-gray-100"
+              title="Variables"
+              tabIndex={-1}
+            >
+              #
+            </button>
+            <button
+              type="button"
+              className="h-9 w-9 rounded-lg hover:bg-gray-100"
+              title="Attach file"
+              tabIndex={-1}
+            >
+              📎
+            </button>
+          </div>
+          <Button
+            size="sm"
+            className="ml-auto"
+            type="submit"
+            disabled={processing || !input.trim()}
+          >
+            Send
+          </Button>
+        </div>
+        <div className="w-full order-1" data-testid="composer">
+          <textarea
+            ref={textareaRef}
+            rows={2}
+            placeholder="Ask Scopify or type / for commands…"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none text-black"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={processing}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !processing
+              ) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <div
+            className="mt-2 overflow-x-auto whitespace-nowrap flex gap-2"
+            data-testid="suggestions-row"
+          >
+            <Hint>/benchmarks</Hint>
+            <Hint>/extract</Hint>
+            <Hint>/risks</Hint>
+            <Hint>/email-followup</Hint>
+            <Hint>/compare-peers</Hint>
+            <Hint>/summarize-call</Hint>
+            <Hint>/flag-inconsistency</Hint>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// --- Utility Components ---
+
+function Badge({ children }: { children: any }) {
+  return (
+    <span className="inline-flex items-center text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
+      {children}
+    </span>
+  );
+}
+
+function Hint({ children }: { children: any }) {
+  return (
+    <span className="text-xs px-2 py-1 rounded-md border border-gray-200 bg-gray-50 text-gray-600">
+      {children}
+    </span>
+  );
+}
+
+function UserMsg({ children }: { children: any }) {
+  return (
+    <div className="flex w-full justify-end">
+      <Bubble role="user">{children}</Bubble>
+    </div>
+  );
+}
+
+function AgentMsg({ children }: { children: any }) {
+  return (
+    <div className="flex w-full">
+      <Bubble role="agent">{children}</Bubble>
+    </div>
+  );
+}
+
+function SystemMsg({ children }: { children: any }) {
+  return (
+    <div className="flex w-full">
+      <Bubble role="system">{children}</Bubble>
+    </div>
+  );
+}
+
+function Bubble({
+  children,
+  role,
+}: {
+  children: any;
+  role?: "agent" | "user" | "system";
+}) {
+  const base = "max-w-[90%] rounded-2xl px-3 py-2 text-sm shadow-sm";
+  if (role === "user")
+    return <div className={`self-end bg-indigo-600 text-white ${base}`}>{children}</div>;
+  if (role === "system")
+    return (
+      <div className={`self-center bg-gray-100 text-gray-700 ${base}`}>{children}</div>
+    );
+  return <div className={`self-start bg-white text-black ${base}`}>{children}</div>;
 }
