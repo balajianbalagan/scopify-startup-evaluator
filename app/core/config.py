@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     # Google AI Studio
     SCOPIFY_GOOGLE_AI_API_KEY: Optional[str] = None
+    
+    # Default admin user (created on startup)
+    DEFAULT_ADMIN_EMAIL: Optional[str] = None
+    DEFAULT_ADMIN_PASSWORD: Optional[str] = None
 
     def build_postgres_url(self) -> Optional[str]:
         if not (self.SCOPIFY_POSTGRES_USER and self.SCOPIFY_POSTGRES_PASSWORD and self.SCOPIFY_POSTGRES_SERVER and self.SCOPIFY_POSTGRES_DB):
@@ -40,7 +44,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
 # If a full DATABASE_URL was not provided, attempt to construct from Postgres parts
 if settings.SCOPIFY_DATABASE_URL.startswith("sqlite"):
     candidate = settings.build_postgres_url()

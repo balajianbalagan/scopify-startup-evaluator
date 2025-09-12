@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.crud import user as user_crud
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserRead, TokenPair
+from app.schemas.user import LoginResponse, UserCreate, UserRead, TokenPair
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,15 +20,23 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
-@router.post("/login", response_model=TokenPair)
+
+@router.post("/login", response_model=LoginResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = user_crud.authenticate(db, email=form_data.username, password=form_data.password)
     if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email or password"
+        )
     access = create_access_token(subject=user.email)
     refresh = create_refresh_token(subject=user.email)
-    return TokenPair(access_token=access, refresh_token=refresh)
-
+    
+    return LoginResponse(
+        access_token=access,
+        refresh_token=refresh,
+        user=user  # ORM object, Pydantic will convert via orm_mode=True
+    )
 
 @router.post("/refresh", response_model=TokenPair)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):

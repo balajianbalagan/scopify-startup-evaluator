@@ -54,3 +54,7 @@ class AvailableRolesResponse(BaseModel):
     available_roles: list[str]
     current_user_role: UserRole
 
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    user: UserRead
