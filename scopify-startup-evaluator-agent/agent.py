@@ -1,6 +1,9 @@
 from google.adk.agents import Agent
 from toolbox_core import ToolboxSyncClient
-
+from google.adk.planners import BasePlanner, BuiltInPlanner, PlanReActPlanner
+from google.adk.tools import google_search
+from google.genai.types import ThinkingConfig
+from google.genai.types import GenerateContentConfig
 TOOLBOX_URL = "http://127.0.0.1:5000"  # change if your toolbox is elsewhere
 
 # Connect to MCP Toolbox
@@ -29,15 +32,27 @@ trends_tools = safe_load_toolset("digital_trends") or scopify_analysis_tools
 industries_tools = safe_load_toolset("industries_markets") or scopify_analysis_tools
 politics_tools = safe_load_toolset("politics_society") or scopify_analysis_tools
 market_insights_tools = safe_load_toolset("market_insights") or scopify_analysis_tools
-
+# scopify_core_tools.append(google_search)
 # ---------------------------
 # Agents (one per domain)
 # ---------------------------
+# Step 1: Create a ThinkingConfig
+thinking_config = ThinkingConfig(
+    include_thoughts=True,   # Ask the model to include its thoughts in the response
+    thinking_budget=256      # Limit the 'thinking' to 256 tokens (adjust as needed)
+)
+print("ThinkingConfig:", thinking_config)
 
+# Step 2: Instantiate BuiltInPlanner
+planner = BuiltInPlanner(
+    thinking_config=thinking_config
+)
+print("BuiltInPlanner created.")
 # Your original root agent (keeps same name)
 root_agent = Agent(
     name="scopify_startup_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
+    planner=planner,
     description=(
         "An AI analyst that evaluates startups by retrieving details, "
         "benchmarking them against peers in the same industry, and "
@@ -45,8 +60,8 @@ root_agent = Agent(
     ),
     instruction=(
         "You are a startup analyst. "
-        "When given a startup name, use your tools to: "
-        "1. Fetch the startup's details. "
+        "When given a startup idea, use your tools to, focus on idea not name: "
+        "1. Fetch the startup's details. by industry use keywords if needed (use small keywords and even search partially). "
         "2. Benchmark it against peers in the same industry. "
         "3. Review failures in the industry for risks and lessons. "
         "4. Provide clear recommendations for growth, differentiation, and funding strategy."

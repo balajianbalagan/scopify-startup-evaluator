@@ -24,18 +24,58 @@ tools:
   search_startups_by_keyword:
     kind: bigquery-sql
     source: scopify-bq
-    description: Search startups by keyword across name, description and product.
+    description: Search startups by keyword across name, description, and product.
     parameters:
       - name: keyword
         type: string
         description: Keyword to search (partial match). Will be used in name, description, product.
     statement: |
-      SELECT id, name, industry, location, product, description
+      SELECT 
+        id, 
+        name, 
+        industry, 
+        location, 
+        product, 
+        description
       FROM `hackathons-fav.scopify.startups`
-      WHERE LOWER(name) LIKE CONCAT('%', LOWER(?), '%')
-         OR LOWER(description) LIKE CONCAT('%', LOWER(?), '%')
-         OR LOWER(product) LIKE CONCAT('%', LOWER(?), '%')
+      WHERE LOWER(CAST(name AS STRING)) LIKE CONCAT('%', LOWER(@keyword), '%')
+        OR LOWER(CAST(description AS STRING)) LIKE CONCAT('%', LOWER(@keyword), '%')
+        OR LOWER(CAST(product AS STRING)) LIKE CONCAT('%', LOWER(@keyword), '%')
       LIMIT 50
+
+  industry_list:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Returns all unique industries from startups dataset.
+    statement: |
+      SELECT DISTINCT industry
+      FROM `hackathons-fav.scopify.startups`
+      WHERE industry IS NOT NULL
+      ORDER BY industry
+
+
+  search_startups_by_industry:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Search startups by industry across name, description, and product.
+    parameters:
+      - name: industry
+        type: string
+        description: Industry to search (partial match). Will be used in name, description, product.
+    statement: |
+      SELECT 
+        id, 
+        name, 
+        industry, 
+        location, 
+        product, 
+        description
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(CAST(industry AS STRING)) LIKE CONCAT('%', LOWER(@industry), '%')
+        OR LOWER(CAST(description AS STRING)) LIKE CONCAT('%', LOWER(@industry), '%')
+        OR LOWER(CAST(product AS STRING)) LIKE CONCAT('%', LOWER(@industry), '%')
+      LIMIT 50
+
 
   list_top_companies_by_valuation:
     kind: bigquery-sql
@@ -316,8 +356,9 @@ tools:
 # ------------------------------
 toolsets:
   scopify_core:
-    - get_startup_by_name
     - search_startups_by_keyword
+    - search_startups_by_industry
+    - industry_list
     - list_top_companies_by_valuation
     - benchmark_peers
     - failed_startup_patterns_for_industry
