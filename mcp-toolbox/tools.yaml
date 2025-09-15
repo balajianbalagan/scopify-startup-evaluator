@@ -1,0 +1,83 @@
+sources:
+  scopify-bq:
+    kind: bigquery
+    project: hackathons-fav  # Ensure this is your actual GCP project ID
+
+tools:
+  get_startup_details:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: |
+      Fetch core details for a single startup by its name using a flexible text search.
+      Use this tool first to get the ID, industry, and funding stage for the other tools.
+    parameters:
+      - name: startup_name_pattern
+        type: string
+        description: A case-insensitive search pattern for the startup's name. Should include the SQL wildcard '%' for partial matches (e.g., '%Figma%').
+    statement: |
+      SELECT
+        id,
+        name,
+        industry,
+        location,
+        number_of_employees,
+        total_funding_raised,
+        total_valuation,
+        founded_year,
+        funding_stage
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(name) LIKE LOWER(?)
+      LIMIT 1
+
+  get_peer_benchmarks:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: |
+      Calculates average funding, valuation, and employee count for a group of peer startups.
+      Peers are defined as being in the same industry and funding stage.
+      Requires the industry, funding_stage, and the ID of the startup to exclude from the calculation.
+    parameters:
+      - name: industry
+        type: string
+        description: The industry to benchmark against.
+      - name: funding_stage
+        type: string
+        description: The funding stage to benchmark against.
+      - name: startup_id_to_exclude
+        type: number
+        description: The unique ID of the startup being analyzed, to exclude it from peer calculations.
+    statement: |
+      SELECT
+        COUNT(*) as peer_count,
+        AVG(total_funding_raised) as avg_funding,
+        AVG(total_valuation) as avg_valuation,
+        AVG(number_of_employees) as avg_employees
+      FROM `hackathons-fav.scopify.startups`
+      WHERE
+        LOWER(industry) = LOWER(?)
+        AND LOWER(funding_stage) = LOWER(?)
+        AND id != ?
+
+  get_industry_risks:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: |
+      Get up to 5 common failure reasons and takeaways for failed startups in a specific industry.
+    parameters:
+      - name: industry
+        type: string
+        description: The industry name to find associated risks for.
+    statement: |
+      SELECT
+        fs.failure_reason,
+        fs.takeaway
+      FROM `hackathons-fav.scopify.failed_startups` AS fs
+      JOIN `hackathons-fav.scopify.startups` AS s ON fs.startup_id = s.id
+      WHERE LOWER(s.industry) = LOWER(?)
+      LIMIT 5
+
+toolsets:
+  startup_analyzer:
+    - get_startup_details
+    - get_peer_benchmarks
+    - get_industry_risks
