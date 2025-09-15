@@ -11,12 +11,15 @@ export const useAuth = () => {
     const checkAuth = async () => {
       try {
         if (apiService.isAuthenticated()) {
-          const userData = await apiService.getMe();
+          const userData = await apiService.fetchCurrentUser();
           setUser(userData);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         apiService.logout();
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -31,5 +34,5 @@ export const useAuth = () => {
     router.push('/');
   };
 
-  return { user, loading, logout, isAuthenticated: !!user };
+  return { user, loading, logout, isAuthenticated: apiService.isAuthenticated() && !!user };
 };

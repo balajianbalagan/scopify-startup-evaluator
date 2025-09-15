@@ -6,13 +6,23 @@ import LandingPage from '@/components/landingPage/LandingPage';
 import CopilotSidebar from '@/components/copilot/CopilotSidebar';
 import LeftSidebar from '@/components/nav/LeftSidebar';
 import Profilemenu from '@/components/nav/Profilemenu';
+import SignUp from './landingPage/SignUp';
 
 export default function ClientWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   // Check if the user is on the landing page route
   const isLandingPage = pathname === '/';
+  const isSignUpPage = pathname === '/signup';
 
+  if (isLandingPage) {
+    return <LandingPage />;
+  }
+
+  if (isSignUpPage) {
+    return <SignUp />;
+  }
+  
   return (
     <>
       {isLandingPage ? (
