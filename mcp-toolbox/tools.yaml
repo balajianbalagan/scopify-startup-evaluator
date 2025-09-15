@@ -1,83 +1,352 @@
 sources:
   scopify-bq:
     kind: bigquery
-    project: hackathons-fav  # Ensure this is your actual GCP project ID
+    project: hackathons-fav   # <-- your project id
 
 tools:
-  get_startup_details:
+  # ------------------------------
+  # Core scopify tools (startup-level)
+  # ------------------------------
+  get_startup_by_name:
     kind: bigquery-sql
     source: scopify-bq
-    description: |
-      Fetch core details for a single startup by its name using a flexible text search.
-      Use this tool first to get the ID, industry, and funding stage for the other tools.
+    description: Fetch the full row for a startup by name.
     parameters:
-      - name: startup_name_pattern
+      - name: startup_name
         type: string
-        description: A case-insensitive search pattern for the startup's name. Should include the SQL wildcard '%' for partial matches (e.g., '%Figma%').
+        description: The startup name to search for.
     statement: |
-      SELECT
-        id,
-        name,
-        industry,
-        location,
-        number_of_employees,
-        total_funding_raised,
-        total_valuation,
-        founded_year,
-        funding_stage
+      SELECT *
       FROM `hackathons-fav.scopify.startups`
-      WHERE LOWER(name) LIKE LOWER(?)
+      WHERE LOWER(name) = LOWER(?)
       LIMIT 1
 
-  get_peer_benchmarks:
+  search_startups_by_keyword:
     kind: bigquery-sql
     source: scopify-bq
-    description: |
-      Calculates average funding, valuation, and employee count for a group of peer startups.
-      Peers are defined as being in the same industry and funding stage.
-      Requires the industry, funding_stage, and the ID of the startup to exclude from the calculation.
+    description: Search startups by keyword across name, description and product.
     parameters:
-      - name: industry
+      - name: keyword
         type: string
-        description: The industry to benchmark against.
-      - name: funding_stage
-        type: string
-        description: The funding stage to benchmark against.
-      - name: startup_id_to_exclude
-        type: number
-        description: The unique ID of the startup being analyzed, to exclude it from peer calculations.
+        description: Keyword to search (partial match). Will be used in name, description, product.
     statement: |
-      SELECT
-        COUNT(*) as peer_count,
-        AVG(total_funding_raised) as avg_funding,
-        AVG(total_valuation) as avg_valuation,
-        AVG(number_of_employees) as avg_employees
+      SELECT id, name, industry, location, product, description
       FROM `hackathons-fav.scopify.startups`
-      WHERE
-        LOWER(industry) = LOWER(?)
-        AND LOWER(funding_stage) = LOWER(?)
-        AND id != ?
+      WHERE LOWER(name) LIKE CONCAT('%', LOWER(?), '%')
+         OR LOWER(description) LIKE CONCAT('%', LOWER(?), '%')
+         OR LOWER(product) LIKE CONCAT('%', LOWER(?), '%')
+      LIMIT 50
 
-  get_industry_risks:
+  list_top_companies_by_valuation:
     kind: bigquery-sql
     source: scopify-bq
-    description: |
-      Get up to 5 common failure reasons and takeaways for failed startups in a specific industry.
+    description: Return top companies ordered by valuation.
+    parameters: []
+    statement: |
+      SELECT name, industry, total_valuation, total_funding_raised, number_of_employees
+      FROM `hackathons-fav.scopify.startups`
+      WHERE total_valuation IS NOT NULL
+      ORDER BY total_valuation DESC
+      LIMIT 50
+
+  benchmark_peers:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Given a startup name, fetch peers in same industry and simple stats.
+    parameters:
+      - name: startup_name
+        type: string
+        description: The startup name to derive industry and find peers for.
+    statement: |
+      WITH base AS (
+        SELECT industry
+        FROM `hackathons-fav.scopify.startups`
+        WHERE LOWER(name) = LOWER(?)
+        LIMIT 1
+      )
+      SELECT
+        s.name, s.industry, s.total_funding_raised, s.total_valuation, s.number_of_employees, s.founded_year, s.funding_stage
+      FROM `hackathons-fav.scopify.startups` s
+      JOIN base b ON LOWER(s.industry) = LOWER(b.industry)
+      ORDER BY s.total_funding_raised DESC
+      LIMIT 25
+
+  failed_startup_patterns_for_industry:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Get failure reasons & takeaways for startups in the same industry as the given startup.
+    parameters:
+      - name: startup_name
+        type: string
+        description: Startup used to determine industry for failure pattern lookups.
+    statement: |
+      WITH base AS (
+        SELECT industry
+        FROM `hackathons-fav.scopify.startups`
+        WHERE LOWER(name) = LOWER(?)
+        LIMIT 1
+      )
+      SELECT f.failure_reason, f.takeaway, COUNT(1) AS examples
+      FROM `hackathons-fav.scopify.failed_startups` f
+      JOIN `hackathons-fav.scopify.startups` s ON f.startup_id = s.id
+      JOIN base b ON LOWER(s.industry) = LOWER(b.industry)
+      GROUP BY f.failure_reason, f.takeaway
+      ORDER BY examples DESC
+      LIMIT 20
+
+  # ------------------------------
+  # Companies & Products toolset
+  # ------------------------------
+  company_overview:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: High-level company overview- valuation, funding, employees, founding year, unicorn flag.
+    parameters:
+      - name: company_name
+        type: string
+        description: Company name to look up.
+    statement: |
+      SELECT name, industry, total_funding_raised, total_valuation, number_of_employees, founded_year, is_unicorn, product
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(name) = LOWER(?)
+      LIMIT 1
+
+  company_competitors:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Attempt to list competitors for a company (depends on competitors array/string).
+    parameters:
+      - name: company_name
+        type: string
+        description: Company name to extract competitors for.
+    statement: |
+      SELECT s.name AS company, ARRAY_TO_STRING(s.competitors, ', ') AS competitors
+      FROM `hackathons-fav.scopify.startups` s
+      WHERE LOWER(s.name) = LOWER(?)
+      LIMIT 1
+
+  product_rankings_by_tam:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Rank products by TAM (if TAM present) and count of companies.
+    parameters: []
+    statement: |
+      SELECT product, COUNT(1) AS companies, APPROX_QUANTILES(CAST(tam AS FLOAT64), 10)[OFFSET(9)] AS tam_p90
+      FROM `hackathons-fav.scopify.startups`
+      WHERE product IS NOT NULL
+      GROUP BY product
+      ORDER BY companies DESC
+      LIMIT 50
+
+  # ------------------------------
+  # Consumer & Brands toolset (from existing fields: social_media_links, latest_news)
+  # ------------------------------
+  consumer_signals_from_news:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Pull recent latest_news and social_media_links for a company.
+    parameters:
+      - name: startup_name
+        type: string
+        description: Company name whose news/social links will be returned.
+    statement: |
+      SELECT name, latest_news, social_media_links
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(name) = LOWER(?)
+      LIMIT 1
+
+  top_companies_by_social_mentions:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Approx count of social links as a proxy for social presence.
+    parameters: []
+    statement: |
+      SELECT name, ARRAY_LENGTH(IFNULL(social_media_links, [])) AS social_links_count
+      FROM `hackathons-fav.scopify.startups`
+      ORDER BY social_links_count DESC
+      LIMIT 50
+
+  # ------------------------------
+  # Countries & Regions toolset (extract country from location)
+  # ------------------------------
+  country_summary:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Aggregate KPIs by country parsed from location.
+    parameters:
+      - name: country_name
+        type: string
+        description: Country substring to match in the location field.
+    statement: |
+      SELECT
+        REGEXP_EXTRACT(location, r',\\s*([^,]+)\\s*,\\s*[^,]+$') AS country_extracted,
+        COUNT(1) AS companies,
+        AVG(CAST(number_of_employees AS FLOAT64)) AS avg_employees,
+        SUM(CAST(total_funding_raised AS FLOAT64)) AS sum_funding
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(location) LIKE CONCAT('%', LOWER(?), '%')
+      GROUP BY country_extracted
+      LIMIT 1
+
+  # ------------------------------
+  # Digital & Trends toolset
+  # ------------------------------
+  trend_by_subcategory:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Count startups per sub_category to detect trending subcategories.
+    parameters: []
+    statement: |
+      SELECT sc AS sub_category, COUNT(1) AS companies
+      FROM `hackathons-fav.scopify.startups`, UNNEST(IFNULL(sub_categories, [])) AS sc
+      GROUP BY sc
+      ORDER BY companies DESC
+      LIMIT 50
+
+  new_startups_last_year:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Count new startups created in the last 365 days.
+    parameters: []
+    statement: |
+      SELECT COUNT(1) AS new_startups
+      FROM `hackathons-fav.scopify.startups`
+      WHERE SAFE_CAST(created_at AS TIMESTAMP) >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 365 DAY)
+
+  # ------------------------------
+  # Industries & Markets toolset
+  # ------------------------------
+  industry_summary:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: KPIs aggregated per industry.
     parameters:
       - name: industry
         type: string
-        description: The industry name to find associated risks for.
+        description: Industry name to aggregate KPIs for.
     statement: |
       SELECT
-        fs.failure_reason,
-        fs.takeaway
-      FROM `hackathons-fav.scopify.failed_startups` AS fs
-      JOIN `hackathons-fav.scopify.startups` AS s ON fs.startup_id = s.id
-      WHERE LOWER(s.industry) = LOWER(?)
-      LIMIT 5
+        industry,
+        COUNT(1) AS companies,
+        APPROX_QUANTILES(CAST(total_funding_raised AS FLOAT64), 100)[OFFSET(50)] AS median_funding,
+        APPROX_QUANTILES(CAST(total_valuation AS FLOAT64), 100)[OFFSET(50)] AS median_valuation,
+        AVG(CAST(number_of_employees AS FLOAT64)) AS avg_employees
+      FROM `hackathons-fav.scopify.startups`
+      WHERE LOWER(industry) = LOWER(?)
+      GROUP BY industry
+      LIMIT 1
 
+  # ------------------------------
+  # Politics & Society toolset (limited to dataset fields - country/company flags)
+  # ------------------------------
+  politics_company_country_counts:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Count companies by country as proxy for regional economic activity.
+    parameters: []
+    statement: |
+      SELECT
+        REGEXP_EXTRACT(location, r',\\s*([^,]+)\\s*,\\s*[^,]+$') AS country,
+        COUNT(1) AS companies
+      FROM `hackathons-fav.scopify.startups`
+      GROUP BY country
+      ORDER BY companies DESC
+      LIMIT 50
+
+  # ------------------------------
+  # Market Insights toolset (compare regions / KPIs)
+  # ------------------------------
+  compare_regions_kpis:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Compare simple KPIs for up to 5 regions (pass comma-separated list in parameter).
+    parameters:
+      - name: regions_csv
+        type: string
+        description: Comma-separated region substrings to match in 'location'
+    statement: |
+      WITH regions AS (
+        SELECT TRIM(region) AS region FROM UNNEST(SPLIT(?))
+      )
+      SELECT r.region,
+             COUNT(1) AS companies,
+             AVG(CAST(number_of_employees AS FLOAT64)) AS avg_employees,
+             SUM(CAST(total_funding_raised AS FLOAT64)) AS total_funding
+      FROM `hackathons-fav.scopify.startups` s
+      JOIN regions r ON LOWER(s.location) LIKE CONCAT('%', LOWER(r.region), '%')
+      GROUP BY r.region
+
+  # ------------------------------
+  # Helper discovery tools (so agents don't guess)
+  # ------------------------------
+  get_available_industries:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Return distinct industries present in the dataset.
+    parameters: []
+    statement: |
+      SELECT DISTINCT industry
+      FROM `hackathons-fav.scopify.startups`
+      WHERE industry IS NOT NULL
+      ORDER BY industry
+
+  get_available_subcategories:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Return distinct subcategories (unnest array) present in the dataset.
+    parameters: []
+    statement: |
+      SELECT DISTINCT sc AS sub_category
+      FROM `hackathons-fav.scopify.startups`, UNNEST(IFNULL(sub_categories,[])) AS sc
+      ORDER BY sub_category
+
+  get_available_funding_stages:
+    kind: bigquery-sql
+    source: scopify-bq
+    description: Return distinct funding stages present in the dataset.
+    parameters: []
+    statement: |
+      SELECT DISTINCT funding_stage
+      FROM `hackathons-fav.scopify.startups`
+      WHERE funding_stage IS NOT NULL
+      ORDER BY funding_stage
+
+# ------------------------------
+# Toolsets mapping
+# ------------------------------
 toolsets:
-  startup_analyzer:
-    - get_startup_details
-    - get_peer_benchmarks
-    - get_industry_risks
+  scopify_core:
+    - get_startup_by_name
+    - search_startups_by_keyword
+    - list_top_companies_by_valuation
+    - benchmark_peers
+    - failed_startup_patterns_for_industry
+
+  companies_products:
+    - company_overview
+    - company_competitors
+    - product_rankings_by_tam
+    - list_top_companies_by_valuation
+
+  consumer_brands:
+    - consumer_signals_from_news
+    - top_companies_by_social_mentions
+
+  countries_regions:
+    - country_summary
+    - politics_company_country_counts
+
+  digital_trends:
+    - trend_by_subcategory
+    - new_startups_last_year
+
+  industries_markets:
+    - industry_summary
+    - compare_regions_kpis
+
+  politics_society:
+    - politics_company_country_counts
+
+  market_insights:
+    - compare_regions_kpis
+    - product_rankings_by_tam
