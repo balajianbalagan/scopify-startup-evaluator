@@ -11,6 +11,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.startup import router as startup_router
 from app.api.routes.company import router as company_router
 from app.api.routes.admin import router as admin_router
+from app.api.routes.bigquery import router as bigquery_router
 from app.api.deps import get_current_user
 from app import crud, schemas
 from app.db.session import get_db
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     application.include_router(startup_router)
     application.include_router(company_router)
     application.include_router(admin_router)
+    application.include_router(bigquery_router)
 
     return application
 

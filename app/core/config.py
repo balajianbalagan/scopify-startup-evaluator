@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
@@ -29,6 +30,15 @@ class Settings(BaseSettings):
     # Google AI Studio
     SCOPIFY_GOOGLE_AI_API_KEY: Optional[str] = None
     
+    # Google Cloud Configuration
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
+    GCS_BUCKET_NAME: Optional[str] = None
+    
+    # Google Document AI
+    DOCAI_PROJECT_ID: Optional[str] = None
+    DOCAI_LOCATION: str = "us"
+    DOCAI_PROCESSOR_ID: Optional[str] = None
+    
     # Default admin user (created on startup)
     DEFAULT_ADMIN_EMAIL: Optional[str] = None
     DEFAULT_ADMIN_PASSWORD: Optional[str] = None
@@ -44,6 +54,13 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Debug: Print all settings
+print("Loaded settings:")
+print(f"GOOGLE_APPLICATION_CREDENTIALS: {settings.GOOGLE_APPLICATION_CREDENTIALS}")
+print(f"ENV file path: {ENV_FILE_PATH}")
+print(f"ENV file exists: {os.path.exists(ENV_FILE_PATH)}")
+
 # If a full DATABASE_URL was not provided, attempt to construct from Postgres parts
 if settings.SCOPIFY_DATABASE_URL.startswith("sqlite"):
     candidate = settings.build_postgres_url()
