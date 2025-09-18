@@ -28,6 +28,9 @@ class Startup(Base):
     founded_year = Column(Integer, nullable=True)
     number_of_employees = Column(Integer, nullable=True)
     sub_categories = Column(Text, nullable=True)  # JSON string for list of sub categories
+    
+    # Relationships
+    document_analyses = relationship("DocumentAnalysis", back_populates="startup")
     founders = Column(Text, nullable=True)  # JSON string for list of founders
     total_funding_raised = Column(Float, nullable=True)
     funding_stage = Column(String(100), nullable=True)  # e.g., Seed, Series A, Series B, etc.

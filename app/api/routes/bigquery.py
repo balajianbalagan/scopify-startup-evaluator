@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 import logging
 import json
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 import tempfile
 import os
@@ -146,11 +147,22 @@ async def process_document(file: UploadFile = File(...)):
             logger.info("Detected image file. Using local Vision API OCR...")
             result = await vision_service.process_document(temp_path)
 
-        if result.get("error"):
-            logger.error(f"Vision API processing error: {result['error']}")
-            raise HTTPException(status_code=500, detail=result["error"])
+        # Process with Gemini and store in BigQuery asynchronously
+        bq_service = BigQueryService()
+        processed_result = await bq_service.process_and_store_document(
+            vision_result=result,
+            file_name=file.filename
+        )
 
-        return result
+        # If we got basic error response from processing
+        if processed_result.get("error"):
+            logger.warning(f"Document processed with limited success: {processed_result['error']}")
+            # Still return the result - it will contain the raw vision data
+        else:
+            logger.info("Document processed successfully")
+
+        # Return the processed result in any case
+        return processed_result
 
     except Exception as e:
         logger.error(f"Error processing document: {str(e)}", exc_info=True)
