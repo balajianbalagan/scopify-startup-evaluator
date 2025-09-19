@@ -1,0 +1,1060 @@
+{
+  "named_entities": {
+    "organizations": {
+      "company": {
+        "legal_name": "string",
+        "brand_names": ["string"],
+        "dba_names": ["string"],
+        "parent_company": "string",
+        "subsidiaries": ["string"],
+        "website_url": "string",
+        "social_media_handles": {
+          "linkedin": "string",
+          "twitter": "string",
+          "facebook": "string",
+          "instagram": "string",
+          "youtube": "string"
+        }
+      },
+      "competitors": [{
+        "name": "string",
+        "type": "direct|indirect|potential",
+        "market_position": "string"
+      }],
+      "customers": [{
+        "name": "string",
+        "type": "enterprise|smb|consumer|government",
+        "tier": "strategic|key|standard"
+      }],
+      "partners": [{
+        "name": "string",
+        "type": "technology|channel|strategic|supplier|distribution",
+        "partnership_value": "string"
+      }],
+      "investors": [{
+        "name": "string",
+        "type": "vc|angel|strategic|pe|family_office|accelerator",
+        "tier": "tier1|tier2|tier3"
+      }]
+    },
+    
+    "persons": {
+      "founders": [{
+        "full_name": "string",
+        "role": "ceo|cto|coo|cfo|cmo|cpo",
+        "email": "string",
+        "phone": "string",
+        "linkedin": "string",
+        "twitter": "string",
+        "commitment": "full_time|part_time",
+        "equity_percentage": "float"
+      }],
+      "team_members": [{
+        "full_name": "string",
+        "department": "engineering|sales|marketing|operations|finance",
+        "seniority": "c_level|vp|director|manager|ic",
+        "years_experience": "integer"
+      }],
+      "advisors": [{
+        "full_name": "string",
+        "expertise": "string",
+        "notable_achievements": ["string"],
+        "compensation": "equity|cash|both"
+      }],
+      "board_members": [{
+        "full_name": "string",
+        "type": "independent|investor|founder",
+        "other_boards": ["string"]
+      }]
+    },
+    
+    "locations": {
+      "headquarters": {
+        "street_address": "string",
+        "city": "string",
+        "state_province": "string",
+        "country": "string",
+        "postal_code": "string",
+        "timezone": "string",
+        "coordinates": {
+          "latitude": "float",
+          "longitude": "float"
+        }
+      },
+      "offices": [{
+        "location_type": "office|warehouse|factory|lab|store",
+        "city": "string",
+        "country": "string",
+        "employee_count": "integer"
+      }],
+      "target_markets": [{
+        "region": "string",
+        "countries": ["string"],
+        "market_entry_status": "active|planned|exploring"
+      }]
+    },
+    
+    "dates": {
+      "founding_date": "date",
+      "incorporation_date": "date",
+      "product_launch_date": "date",
+      "revenue_start_date": "date",
+      "profitability_date": "date",
+      "funding_dates": [{
+        "round": "string",
+        "date": "date",
+        "amount": "float"
+      }],
+      "milestone_dates": [{
+        "milestone": "string",
+        "achieved_date": "date"
+      }]
+    },
+    
+    "monetary_values": {
+      "revenue": {
+        "mrr": "float",
+        "arr": "float",
+        "quarterly_revenue": "float",
+        "annual_revenue": "float",
+        "lifetime_revenue": "float",
+        "revenue_recognition_method": "string"
+      },
+      "costs": {
+        "cogs": "float",
+        "opex": "float",
+        "capex": "float",
+        "monthly_burn": "float",
+        "cac": "float",
+        "cost_per_unit": "float"
+      },
+      "funding": {
+        "total_raised": "float",
+        "current_round_size": "float",
+        "pre_money_valuation": "float",
+        "post_money_valuation": "float",
+        "valuation_cap": "float",
+        "discount_rate": "float"
+      },
+      "unit_economics": {
+        "ltv": "float",
+        "aov": "float",
+        "acv": "float",
+        "arpu": "float",
+        "contribution_margin": "float"
+      }
+    },
+    
+    "percentages": {
+      "growth_rates": {
+        "revenue_growth_mom": "float",
+        "revenue_growth_qoq": "float",
+        "revenue_growth_yoy": "float",
+        "user_growth_mom": "float",
+        "user_growth_yoy": "float"
+      },
+      "margins": {
+        "gross_margin": "float",
+        "ebitda_margin": "float",
+        "net_margin": "float",
+        "contribution_margin": "float"
+      },
+      "efficiency_metrics": {
+        "burn_multiple": "float",
+        "efficiency_score": "float",
+        "rule_of_40": "float",
+        "magic_number": "float"
+      },
+      "retention_metrics": {
+        "gross_retention": "float",
+        "net_retention": "float",
+        "logo_retention": "float",
+        "churn_rate": "float"
+      },
+      "market_metrics": {
+        "market_share": "float",
+        "win_rate": "float",
+        "conversion_rate": "float",
+        "penetration_rate": "float"
+      }
+    },
+    
+    "products_services": [{
+      "name": "string",
+      "type": "saas|hardware|marketplace|platform|service|api",
+      "description": "string",
+      "launch_date": "date",
+      "pricing_model": "subscription|transaction|freemium|usage|license",
+      "target_customer": "string",
+      "key_features": ["string"]
+    }],
+    
+    "technologies": {
+      "core_tech": ["string"],
+      "programming_languages": ["string"],
+      "frameworks": ["string"],
+      "databases": ["string"],
+      "infrastructure": ["string"],
+      "third_party_services": ["string"],
+      "ai_ml_capabilities": ["string"],
+      "blockchain_tech": ["string"],
+      "iot_devices": ["string"]
+    },
+    
+    "intellectual_property": {
+      "patents": [{
+        "title": "string",
+        "number": "string",
+        "status": "filed|pending|granted|expired",
+        "geography": ["string"]
+      }],
+      "trademarks": [{
+        "name": "string",
+        "registration_number": "string",
+        "classes": ["string"]
+      }],
+      "copyrights": ["string"],
+      "trade_secrets": ["string"],
+      "licenses": [{
+        "type": "inbound|outbound",
+        "partner": "string",
+        "terms": "string"
+      }]
+    }
+  },
+  
+  "relationships": {
+    "corporate_structure": [{
+      "entity_1": "string",
+      "relationship": "owns|controls|subsidiary_of|invested_in|acquired",
+      "entity_2": "string",
+      "details": "string"
+    }],
+    "founder_relationships": [{
+      "person": "string",
+      "relationship": "founded|co_founded|leads|owns|advises",
+      "entity": "string",
+      "equity_stake": "float"
+    }],
+    "customer_relationships": [{
+      "customer": "string",
+      "relationship": "purchases|subscribes_to|partners_with",
+      "product_service": "string",
+      "contract_value": "float",
+      "contract_duration": "integer"
+    }],
+    "investor_relationships": [{
+      "investor": "string",
+      "relationship": "invested_in|leads_round|follows_in",
+      "company": "string",
+      "amount": "float",
+      "round": "string"
+    }],
+    "competitive_relationships": [{
+      "company": "string",
+      "relationship": "competes_with|differentiates_from|partners_with",
+      "competitor": "string",
+      "context": "string"
+    }],
+    "supply_chain_relationships": [{
+      "entity_1": "string",
+      "relationship": "supplies_to|sources_from|distributes_through",
+      "entity_2": "string",
+      "dependency_level": "critical|important|minor"
+    }]
+  },
+  
+  "business_model_classification": {
+    "primary_model": "b2b|b2c|b2b2c|b2g|c2c|d2c",
+    "revenue_model": "saas|marketplace|transaction|advertising|freemium|hardware|service",
+    "delivery_model": "cloud|on_premise|hybrid|mobile|api",
+    "sales_model": "self_serve|inside_sales|field_sales|channel|plg",
+    "pricing_strategy": "value_based|cost_plus|competitive|penetration|skimming",
+    "monetization_timeline": "immediate|deferred|hybrid"
+  },
+  
+  "market_analysis": {
+    "tam": {
+      "global_value": "float",
+      "regional_values": {},
+      "calculation_method": "top_down|bottom_up|value_theory",
+      "source": "string",
+      "year": "integer"
+    },
+    "sam": {
+      "value": "float",
+      "percentage_of_tam": "float",
+      "accessible_segments": ["string"],
+      "time_to_capture": "integer"
+    },
+    "som": {
+      "value": "float",
+      "percentage_of_sam": "float",
+      "realistic_timeline": "integer",
+      "capture_strategy": "string"
+    },
+    "market_dynamics": {
+      "growth_rate": "float",
+      "key_drivers": ["string"],
+      "barriers_to_entry": ["string"],
+      "regulatory_factors": ["string"],
+      "technology_trends": ["string"]
+    },
+    "competitive_landscape": {
+      "market_leaders": ["string"],
+      "market_share_distribution": {},
+      "competitive_advantages": ["string"],
+      "positioning": "leader|challenger|follower|nicher"
+    }
+  },
+  
+  "financial_data": {
+    "historical_financials": {
+      "revenue": [{
+        "period": "string",
+        "amount": "float",
+        "growth_rate": "float"
+      }],
+      "expenses": [{
+        "period": "string",
+        "amount": "float",
+        "breakdown": {}
+      }],
+      "profitability": [{
+        "period": "string",
+        "gross_profit": "float",
+        "ebitda": "float",
+        "net_income": "float"
+      }]
+    },
+    "current_metrics": {
+      "cash_balance": "float",
+      "monthly_burn_rate": "float",
+      "runway_months": "integer",
+      "working_capital": "float",
+      "debt": "float",
+      "deferred_revenue": "float"
+    },
+    "projections": {
+      "revenue_projections": [{
+        "year": "integer",
+        "amount": "float",
+        "assumptions": ["string"]
+      }],
+      "path_to_profitability": "date",
+      "break_even_point": "date",
+      "funding_requirements": [{
+        "round": "string",
+        "amount": "float",
+        "timeline": "date"
+      }]
+    },
+    "unit_economics_detail": {
+      "customer_economics": {
+        "cac_by_channel": {},
+        "ltv_by_segment": {},
+        "payback_period": "integer",
+        "contribution_margin_evolution": []
+      },
+      "cohort_analysis": {
+        "retention_curves": [],
+        "revenue_expansion": [],
+        "churn_analysis": {}
+      }
+    }
+  },
+  
+  "operational_metrics": {
+    "customer_metrics": {
+      "total_customers": "integer",
+      "enterprise_customers": "integer",
+      "smb_customers": "integer",
+      "customer_concentration": "float",
+      "nps_score": "integer",
+      "csat_score": "float",
+      "support_tickets": "integer",
+      "response_time": "float"
+    },
+    "product_metrics": {
+      "mau": "integer",
+      "dau": "integer",
+      "wau": "integer",
+      "feature_adoption": {},
+      "engagement_score": "float",
+      "session_duration": "float",
+      "retention_cohorts": []
+    },
+    "sales_metrics": {
+      "pipeline_value": "float",
+      "qualified_leads": "integer",
+      "sales_cycle_days": "integer",
+      "win_rate": "float",
+      "upsell_rate": "float",
+      "quota_attainment": "float"
+    },
+    "operational_efficiency": {
+      "revenue_per_employee": "float",
+      "customer_per_employee": "float",
+      "gross_margin_per_employee": "float",
+      "automation_percentage": "float"
+    }
+  },
+  
+  "industry_specific_metrics": {
+    "saas": {
+      "arr": "float",
+      "nrr": "float",
+      "grr": "float",
+      "logo_churn": "float",
+      "dollar_churn": "float",
+      "expansion_revenue": "float",
+      "downgrades": "float",
+      "quick_ratio": "float",
+      "cac_payback": "integer",
+      "ltv_cac_ratio": "float",
+      "magic_number": "float",
+      "rule_of_40": "float",
+      "burn_multiple": "float",
+      "efficiency_score": "float",
+      "bessemer_efficiency": "float"
+    },
+    "marketplace": {
+      "gmv": "float",
+      "take_rate": "float",
+      "supplier_count": "integer",
+      "demand_side_users": "integer",
+      "transactions": "integer",
+      "average_order_value": "float",
+      "frequency": "float",
+      "liquidity": "float",
+      "match_rate": "float",
+      "fulfillment_rate": "float",
+      "supplier_churn": "float",
+      "buyer_churn": "float",
+      "cross_side_network_effects": "string"
+    },
+    "ecommerce": {
+      "gmv": "float",
+      "aov": "float",
+      "conversion_rate": "float",
+      "cart_abandonment": "float",
+      "return_rate": "float",
+      "repeat_purchase_rate": "float",
+      "customer_lifetime_value": "float",
+      "inventory_turnover": "float",
+      "days_sales_outstanding": "integer",
+      "sku_count": "integer",
+      "sku_productivity": "float",
+      "channel_mix": {},
+      "fulfillment_cost": "float",
+      "contribution_profit": "float"
+    },
+    "fintech": {
+      "total_payment_volume": "float",
+      "transaction_count": "integer",
+      "average_transaction_size": "float",
+      "payment_success_rate": "float",
+      "fraud_rate": "float",
+      "chargeback_rate": "float",
+      "regulatory_capital": "float",
+      "aum": "float",
+      "loan_book": "float",
+      "npa": "float",
+      "provision_coverage": "float",
+      "cost_of_funds": "float",
+      "net_interest_margin": "float",
+      "return_on_assets": "float",
+      "capital_adequacy_ratio": "float"
+    },
+    "edtech": {
+      "enrolled_students": "integer",
+      "active_learners": "integer",
+      "course_completion_rate": "float",
+      "certification_rate": "float",
+      "job_placement_rate": "float",
+      "salary_increase": "float",
+      "content_hours": "integer",
+      "courses_offered": "integer",
+      "instructor_count": "integer",
+      "student_satisfaction": "float",
+      "renewal_rate": "float",
+      "referral_rate": "float"
+    },
+    "healthtech": {
+      "patients_served": "integer",
+      "consultations": "integer",
+      "procedures": "integer",
+      "clinical_outcomes": "float",
+      "patient_satisfaction": "float",
+      "provider_network": "integer",
+      "claims_processed": "integer",
+      "prior_auth_approval_rate": "float",
+      "readmission_rate": "float",
+      "medication_adherence": "float",
+      "cost_savings": "float",
+      "lives_covered": "integer",
+      "utilization_rate": "float"
+    },
+    "proptech": {
+      "properties_listed": "integer",
+      "properties_transacted": "integer",
+      "gross_transaction_value": "float",
+      "average_property_value": "float",
+      "commission_rate": "float",
+      "time_to_close": "integer",
+      "occupancy_rate": "float",
+      "rental_yield": "float",
+      "property_management_units": "integer",
+      "maintenance_requests": "integer",
+      "tenant_satisfaction": "float"
+    },
+    "logistics": {
+      "deliveries": "integer",
+      "delivery_success_rate": "float",
+      "on_time_delivery": "float",
+      "cost_per_delivery": "float",
+      "utilization_rate": "float",
+      "fleet_size": "integer",
+      "hub_count": "integer",
+      "last_mile_cost": "float",
+      "damage_rate": "float",
+      "returns_processed": "integer",
+      "average_delivery_time": "float",
+      "route_optimization_savings": "float"
+    },
+    "agtech": {
+      "farmers_onboarded": "integer",
+      "acreage_covered": "float",
+      "crops_monitored": ["string"],
+      "yield_improvement": "float",
+      "cost_reduction": "float",
+      "input_efficiency": "float",
+      "market_linkage_value": "float",
+      "credit_disbursed": "float",
+      "insurance_coverage": "float",
+      "sustainability_score": "float"
+    },
+    "gaming": {
+      "registered_users": "integer",
+      "mau": "integer",
+      "dau": "integer",
+      "arpu": "float",
+      "arppu": "float",
+      "conversion_to_paying": "float",
+      "retention_d1": "float",
+      "retention_d7": "float",
+      "retention_d30": "float",
+      "session_length": "float",
+      "sessions_per_day": "float",
+      "ltv": "float",
+      "virality_coefficient": "float",
+      "whale_percentage": "float"
+    },
+    "deeptech": {
+      "patents_filed": "integer",
+      "patents_granted": "integer",
+      "research_papers": "integer",
+      "phd_team_members": "integer",
+      "r_and_d_spending": "float",
+      "time_to_market": "integer",
+      "technology_readiness_level": "integer",
+      "proof_of_concepts": "integer",
+      "pilot_projects": "integer",
+      "commercial_deployments": "integer",
+      "ip_licenses": "integer"
+    },
+    "hardware": {
+      "units_manufactured": "integer",
+      "units_sold": "integer",
+      "production_capacity": "integer",
+      "yield_rate": "float",
+      "defect_rate": "float",
+      "warranty_claims": "float",
+      "bill_of_materials_cost": "float",
+      "gross_margin_per_unit": "float",
+      "inventory_days": "integer",
+      "supplier_count": "integer",
+      "component_lead_time": "integer",
+      "nre_costs": "float"
+    },
+    "cleantech": {
+      "energy_generated_mwh": "float",
+      "carbon_offset_tons": "float",
+      "water_saved_gallons": "float",
+      "waste_diverted_tons": "float",
+      "renewable_capacity_mw": "float",
+      "efficiency_improvement": "float",
+      "payback_period_years": "float",
+      "levelized_cost": "float",
+      "environmental_certificates": "integer",
+      "sustainability_score": "float",
+      "esg_rating": "string"
+    },
+    "mobility": {
+      "vehicles": "integer",
+      "rides_completed": "integer",
+      "utilization_rate": "float",
+      "revenue_per_vehicle": "float",
+      "driver_partners": "integer",
+      "driver_earnings": "float",
+      "ride_cancellation_rate": "float",
+      "average_eta": "float",
+      "surge_percentage": "float",
+      "accident_rate": "float",
+      "maintenance_cost": "float"
+    },
+    "foodtech": {
+      "restaurants_partnered": "integer",
+      "orders_processed": "integer",
+      "average_order_value": "float",
+      "delivery_time": "float",
+      "order_accuracy": "float",
+      "customer_complaints": "float",
+      "dark_kitchens": "integer",
+      "menu_items": "integer",
+      "food_cost_percentage": "float",
+      "wastage_percentage": "float",
+      "repeat_order_rate": "float"
+    },
+    "insurtech": {
+      "policies_sold": "integer",
+      "gross_written_premium": "float",
+      "claims_ratio": "float",
+      "loss_ratio": "float",
+      "expense_ratio": "float",
+      "combined_ratio": "float",
+      "customer_acquisition_cost": "float",
+      "policy_renewal_rate": "float",
+      "claims_processing_time": "float",
+      "fraud_detection_rate": "float",
+      "underwriting_automation": "float",
+      "solvency_ratio": "float"
+    },
+    "biotech": {
+      "pipeline_drugs": "integer",
+      "clinical_trials": "integer",
+      "phase_1_trials": "integer",
+      "phase_2_trials": "integer",
+      "phase_3_trials": "integer",
+      "fda_approvals": "integer",
+      "patents": "integer",
+      "licensing_deals": "integer",
+      "r_and_d_expense": "float",
+      "cash_runway": "integer",
+      "collaboration_agreements": "integer"
+    },
+    "spacetech": {
+      "launches": "integer",
+      "satellites_deployed": "integer",
+      "payload_capacity_kg": "float",
+      "launch_success_rate": "float",
+      "cost_per_kg": "float",
+      "contracts_signed": "integer",
+      "backlog_value": "float",
+      "ground_stations": "integer",
+      "data_throughput_gbps": "float",
+      "constellation_size": "integer"
+    },
+    "blockchain": {
+      "total_value_locked": "float",
+      "transaction_volume": "float",
+      "active_wallets": "integer",
+      "gas_fees_generated": "float",
+      "nodes": "integer",
+      "validators": "integer",
+      "staking_ratio": "float",
+      "protocol_revenue": "float",
+      "token_holders": "integer",
+      "smart_contracts_deployed": "integer",
+      "cross_chain_bridges": "integer"
+    },
+    "cybersecurity": {
+      "endpoints_protected": "integer",
+      "threats_detected": "integer",
+      "incidents_prevented": "integer",
+      "false_positive_rate": "float",
+      "mean_time_to_detect": "float",
+      "mean_time_to_respond": "float",
+      "compliance_certifications": ["string"],
+      "vulnerability_assessments": "integer",
+      "security_training_completion": "float",
+      "zero_day_discoveries": "integer"
+    },
+    "robotics": {
+      "robots_deployed": "integer",
+      "automation_hours": "float",
+      "tasks_completed": "integer",
+      "accuracy_rate": "float",
+      "downtime_percentage": "float",
+      "roi_months": "integer",
+      "labor_savings": "float",
+      "productivity_increase": "float",
+      "maintenance_frequency": "float",
+      "software_updates": "integer"
+    },
+    "quantum": {
+      "qubits": "integer",
+      "quantum_volume": "float",
+      "error_rate": "float",
+      "coherence_time": "float",
+      "gate_fidelity": "float",
+      "algorithms_developed": "integer",
+      "commercial_applications": "integer",
+      "cloud_access_hours": "float",
+      "research_collaborations": "integer",
+      "quantum_advantage_demos": "integer"
+    },
+    "ar_vr": {
+      "active_users": "integer",
+      "content_library_size": "integer",
+      "average_session_time": "float",
+      "headsets_sold": "integer",
+      "enterprise_deployments": "integer",
+      "training_modules": "integer",
+      "completion_rate": "float",
+      "user_satisfaction": "float",
+      "motion_sickness_rate": "float",
+      "developer_ecosystem": "integer"
+    },
+    "social_media": {
+      "registered_users": "integer",
+      "mau": "integer",
+      "dau": "integer",
+      "content_created": "integer",
+      "engagement_rate": "float",
+      "viral_coefficient": "float",
+      "time_spent": "float",
+      "ad_impressions": "integer",
+      "cpm": "float",
+      "creator_earnings": "float",
+      "moderation_accuracy": "float"
+    },
+    "legaltech": {
+      "law_firms": "integer",
+      "lawyers": "integer",
+      "cases_managed": "integer",
+      "documents_processed": "integer",
+      "contracts_analyzed": "integer",
+      "time_saved_percentage": "float",
+      "cost_reduction": "float",
+      "accuracy_rate": "float",
+      "compliance_score": "float",
+      "client_satisfaction": "float"
+    },
+    "hrtech": {
+      "companies_served": "integer",
+      "employees_managed": "integer",
+      "payroll_processed": "float",
+      "job_postings": "integer",
+      "applications_processed": "integer",
+      "time_to_hire": "float",
+      "quality_of_hire": "float",
+      "employee_engagement": "float",
+      "retention_improvement": "float",
+      "compliance_rate": "float"
+    },
+    "regtech": {
+      "clients": "integer",
+      "regulations_tracked": "integer",
+      "compliance_checks": "integer",
+      "violations_prevented": "integer",
+      "audit_time_reduction": "float",
+      "false_positives": "float",
+      "regulatory_updates": "integer",
+      "risk_score_accuracy": "float",
+      "cost_savings": "float",
+      "implementation_time": "integer"
+    },
+    "traveltech": {
+      "bookings": "integer",
+      "gmv": "float",
+      "take_rate": "float",
+      "repeat_rate": "float",
+      "cross_sell_rate": "float",
+      "cancellation_rate": "float",
+      "customer_service_rating": "float",
+      "supplier_network": "integer",
+      "destinations": "integer",
+      "mobile_bookings": "float"
+    },
+    "retailtech": {
+      "stores_equipped": "integer",
+      "transactions_processed": "integer",
+      "basket_size_increase": "float",
+      "checkout_time_reduction": "float",
+      "inventory_accuracy": "float",
+      "shrinkage_reduction": "float",
+      "customer_identification_rate": "float",
+      "personalization_lift": "float",
+      "omnichannel_adoption": "float",
+      "staff_productivity": "float"
+    },
+    "adtech": {
+      "impressions_served": "integer",
+      "clicks": "integer",
+      "ctr": "float",
+      "conversions": "integer",
+      "conversion_rate": "float",
+      "cpm": "float",
+      "cpc": "float",
+      "cpa": "float",
+      "roas": "float",
+      "viewability_rate": "float",
+      "brand_safety_score": "float",
+      "fraud_rate": "float"
+    },
+    "fashiontech": {
+      "brands_onboarded": "integer",
+      "skus": "integer",
+      "virtual_try_ons": "integer",
+      "size_recommendation_accuracy": "float",
+      "return_reduction": "float",
+      "conversion_uplift": "float",
+      "personalization_score": "float",
+      "sustainability_score": "float",
+      "inventory_turnover": "float",
+      "style_match_rate": "float"
+    },
+    "sportstech": {
+      "athletes_tracked": "integer",
+      "teams_served": "integer",
+      "performance_improvement": "float",
+      "injury_reduction": "float",
+      "fan_engagement": "integer",
+      "broadcasts": "integer",
+      "betting_volume": "float",
+      "fantasy_players": "integer",
+      "merchandise_sales": "float",
+      "sponsorship_value": "float"
+    },
+    "musictech": {
+      "artists": "integer",
+      "tracks": "integer",
+      "streams": "integer",
+      "paying_subscribers": "integer",
+      "arpu": "float",
+      "royalties_distributed": "float",
+      "discovery_rate": "float",
+      "playlist_additions": "integer",
+      "concert_tickets_sold": "integer",
+      "merchandise_revenue": "float"
+    },
+    "mediatech": {
+      "content_pieces": "integer",
+      "views": "integer",
+      "watch_time": "float",
+      "subscribers": "integer",
+      "ad_revenue": "float",
+      "subscription_revenue": "float",
+      "content_cost": "float",
+      "viewer_retention": "float",
+      "content_roi": "float",
+      "distribution_reach": "integer"
+    }
+  },
+  
+  "risk_assessment": {
+    "business_risks": {
+      "market_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "execution_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "technology_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "regulatory_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "competitive_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "financial_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "key_person_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "scalability_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "cybersecurity_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      },
+      "reputation_risk": {
+        "level": "high|medium|low",
+        "factors": ["string"],
+        "mitigation": ["string"]
+      }
+    },
+    "red_flags": {
+      "founder_issues": ["string"],
+      "financial_irregularities": ["string"],
+      "market_concerns": ["string"],
+      "product_issues": ["string"],
+      "legal_problems": ["string"],
+      "customer_concentration": "boolean",
+      "high_burn_rate": "boolean",
+      "low_runway": "boolean",
+      "poor_unit_economics": "boolean",
+      "high_churn": "boolean"
+    }
+  },
+  
+  "investment_analysis": {
+    "investment_thesis": {
+      "key_strengths": ["string"],
+      "value_proposition": "string",
+      "market_opportunity_assessment": "string",
+      "competitive_positioning": "string",
+      "scalability_potential": "string",
+      "exit_potential": "string"
+    },
+    "valuation_analysis": {
+      "current_valuation": "float",
+      "valuation_method": "dcf|comparables|vc_method|berkus|scorecard",
+      "revenue_multiple": "float",
+      "ebitda_multiple": "float",
+      "user_multiple": "float",
+      "comparable_companies": [{
+        "company": "string",
+        "valuation": "float",
+        "multiple": "float"
+      }],
+      "valuation_justification": "string"
+    },
+    "deal_terms": {
+      "investment_amount": "float",
+      "ownership_percentage": "float",
+      "board_seats": "integer",
+      "observer_rights": "boolean",
+      "information_rights": "boolean",
+      "pro_rata_rights": "boolean",
+      "liquidation_preference": "float",
+      "anti_dilution": "string",
+      "drag_along": "boolean",
+      "tag_along": "boolean",
+      "vesting_schedule": "string",
+      "option_pool": "float"
+    },
+    "exit_scenarios": {
+      "ipo_timeline": "integer",
+      "acquisition_candidates": ["string"],
+      "strategic_buyers": ["string"],
+      "financial_buyers": ["string"],
+      "expected_exit_multiple": "float",
+      "expected_irr": "float"
+    },
+    "investment_score": {
+      "team_score": "float",
+      "market_score": "float",
+      "product_score": "float",
+      "traction_score": "float",
+      "financials_score": "float",
+      "overall_score": "float",
+      "recommendation": "strong_yes|yes|maybe|no|strong_no"
+    }
+  },
+  
+  "esg_impact": {
+    "environmental": {
+      "carbon_footprint": "float",
+      "renewable_energy_usage": "float",
+      "waste_reduction": "float",
+      "water_conservation": "float",
+      "sustainable_materials": "float",
+      "environmental_certifications": ["string"]
+    },
+    "social": {
+      "jobs_created": "integer",
+      "diversity_percentage": "float",
+      "women_leadership": "float",
+      "community_impact": "string",
+      "customer_privacy_score": "float",
+      "data_security_rating": "string"
+    },
+    "governance": {
+      "board_independence": "float",
+      "audit_committee": "boolean",
+      "compensation_committee": "boolean",
+      "ethics_policy": "boolean",
+      "whistleblower_policy": "boolean",
+      "transparency_score": "float"
+    },
+    "impact_metrics": {
+      "lives_impacted": "integer",
+      "sdg_alignment": ["string"],
+      "social_return_on_investment": "float",
+      "impact_measurement_framework": "string"
+    }
+  },
+  
+  "data_quality_validation": {
+    "completeness": {
+      "mandatory_fields_present": "float",
+      "optional_fields_present": "float",
+      "overall_completeness": "float"
+    },
+    "consistency": {
+      "financial_consistency": "boolean",
+      "date_consistency": "boolean",
+      "metric_consistency": "boolean",
+      "cross_reference_validation": "boolean"
+    },
+    "accuracy": {
+      "market_size_validation": "boolean",
+      "growth_rate_validation": "boolean",
+      "unit_economics_validation": "boolean",
+      "cap_table_validation": "boolean"
+    },
+    "confidence_scores": {
+      "extracted_data_confidence": "float",
+      "inferred_data_confidence": "float",
+      "calculated_data_confidence": "float",
+      "overall_confidence": "float"
+    },
+    "data_sources": {
+      "pitch_deck_pages": ["integer"],
+      "external_sources": ["string"],
+      "verification_status": "verified|unverified|partial",
+      "last_updated": "datetime"
+    }
+  },
+  
+  "extraction_output": {
+    "summary": {
+      "company_snapshot": "string",
+      "investment_highlights": ["string"],
+      "key_metrics": {},
+      "ask_summary": "string",
+      "next_steps": ["string"]
+    },
+    "metadata": {
+      "extraction_id": "string",
+      "processing_time": "float",
+      "extractor_version": "string",
+      "quality_score": "float",
+      "review_status": "pending|reviewed|approved",
+      "reviewer_notes": ["string"]
+    }
+  }
+}
