@@ -177,3 +177,34 @@ async def process_document(file: UploadFile = File(...)):
                     logger.info("Temporary file deleted")
             except Exception as cleanup_error:
                 logger.warning(f"Failed to delete temporary file: {cleanup_error}")
+
+
+@router.get("/documents", response_model=List[Dict[str, Any]])
+async def get_document_analysis(
+    company_name: Optional[str] = Query(None, description="Filter by company name (prefix match)"),
+    industry: Optional[str] = Query(None, description="Filter by industry (prefix match)"),
+    founding_year_min: Optional[int] = Query(None, description="Minimum founding year"),
+    founding_year_max: Optional[int] = Query(None, description="Maximum founding year"),
+    company_stage: Optional[str] = Query(None, description="Filter by company stage (prefix match)"),
+    limit: int = Query(default=100, le=1000, description="Max number of records to fetch")
+):
+    """
+    Get document analysis records from BigQuery with optional filters.
+    Supports prefix search for company_name, industry, and company_stage.
+    """
+    try:
+        bq_service = BigQueryService()
+        return await bq_service.fetch_document_analysis(
+            company_name=company_name,
+            industry=industry,
+            founding_year_min=founding_year_min,
+            founding_year_max=founding_year_max,
+            company_stage=company_stage,
+            limit=limit
+        )
+    except ValueError as ve:
+        # Specifically handle validation errors like year range
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Error fetching document analysis: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching document analysis: {str(e)}")

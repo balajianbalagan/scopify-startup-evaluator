@@ -77,7 +77,6 @@ def seed_mock_data(db: Session, file_path: str):
             )
 def create_app() -> FastAPI:
     print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME} in {settings.ENVIRONMENT} mode")
-    print(f"📊 Database URL: {settings.SCOPIFY_DATABASE_URL}")
     
     application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
     

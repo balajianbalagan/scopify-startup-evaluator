@@ -469,29 +469,30 @@ Return only this JSON format:
         else:
             return obj
 
-    async def _store_in_bigquery(self, vision_result: Dict[str, Any], file_name: str, structured_data: Dict[str, Any]) -> None:
-        """Background task to store document analysis in BigQuery"""
+    async def _store_in_bigquery(
+        self,
+        vision_result: Dict[str, Any],
+        file_name: str,
+        structured_data: Dict[str, Any]
+    ) -> None:
+        """Background task to store document analysis in BigQuery, skipping duplicates"""
         try:
-            # Convert datetime to string IMMEDIATELY to avoid serialization issues
             analysis_timestamp = datetime.utcnow()
-            
-            # Debug: Log the vision_result structure to identify datetime objects
-            logger.debug(f"Vision result keys: {list(vision_result.keys()) if isinstance(vision_result, dict) else 'Not a dict'}")
-            
-            # Create raw_data with extra safety - convert to string first if needed
+
+            # Serialize raw_data safely
             try:
                 raw_data_str = self._safe_json_dumps(vision_result)
-                logger.debug(f"Raw data serialization successful, length: {len(raw_data_str)}")
             except Exception as raw_error:
                 logger.error(f"Raw data serialization failed: {str(raw_error)}")
-                raw_data_str = json.dumps({"error": "Could not serialize vision result", "type": str(type(vision_result))})
-            
-            # Create a completely safe row with all JSON-serializable data types only
+                raw_data_str = json.dumps(
+                    {"error": "Could not serialize vision result", "type": str(type(vision_result))}
+                )
+
             safe_row = {
                 "id": str(int(analysis_timestamp.timestamp() * 1000000)),
                 "file_name": str(file_name) if file_name else "",
                 "analysis_timestamp": analysis_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] + ' UTC',
-                "raw_data": raw_data_str,  # Use the pre-serialized string
+                "raw_data": raw_data_str,
                 "company_name": str(structured_data.get("company_name")) if structured_data.get("company_name") else None,
                 "industry": str(structured_data.get("industry")) if structured_data.get("industry") else None,
                 "founding_year": int(structured_data["founding_year"]) if structured_data.get("founding_year") and str(structured_data["founding_year"]).isdigit() else None,
@@ -505,42 +506,52 @@ Return only this JSON format:
                 "processing_status": "completed" if not structured_data.get("error") else "error",
                 "error_message": str(structured_data.get("error")) if structured_data.get("error") else None
             }
-            
-            # Double-check: Verify that our row is completely JSON serializable
+
+            # ✅ Check for duplicate before inserting
             try:
-                test_json = json.dumps(safe_row)
-                logger.debug(f"Row serialization test passed, length: {len(test_json)}")
-            except Exception as test_error:
-                logger.error(f"Row is still not JSON serializable: {str(test_error)}")
-                # Find the problematic field
-                for key, value in safe_row.items():
-                    try:
-                        json.dumps(value)
-                    except Exception as field_error:
-                        logger.error(f"Field '{key}' is not serializable: {str(field_error)}, type: {type(value)}, value: {value}")
-                        # Force convert problematic field to string
-                        safe_row[key] = str(value) if value is not None else None
-            
-            # Ensure table exists first
+                query = f"""
+                SELECT id, file_name, company_name
+                FROM `{self.dataset_name}.{self.doc_analysis_table}`
+                WHERE LOWER(company_name) = LOWER(@company_name)
+                AND file_name = @file_name
+                LIMIT 1
+                """
+                job_config = bigquery.QueryJobConfig(
+                    query_parameters=[
+                        bigquery.ScalarQueryParameter("company_name", "STRING", safe_row["company_name"]),
+                        bigquery.ScalarQueryParameter("file_name", "STRING", safe_row["file_name"]),
+                    ]
+                )
+                loop = asyncio.get_event_loop()
+                query_job = await loop.run_in_executor(
+                    None, lambda: self.client.query(query, job_config=job_config).result()
+                )
+                existing = [dict(row.items()) for row in query_job]
+                if existing:
+                    logger.info(
+                        f"Duplicate detected: '{safe_row['company_name']}' "
+                        f"from file '{safe_row['file_name']}' already exists with id {existing[0]['id']}"
+                    )
+                    return  # ❌ Skip insertion
+            except Exception as dup_check_error:
+                logger.error(f"Duplicate check failed, continuing anyway: {str(dup_check_error)}")
+
+            # Ensure table exists
             try:
                 self._ensure_doc_analysis_table_exists()
             except Exception as table_error:
                 logger.error(f"Error ensuring table exists: {str(table_error)}")
-                # Continue anyway - table might exist despite error
-            
-            # Insert into BigQuery - use insert_rows instead of insert_rows_json to avoid JSON serialization
+
+            # Insert into BigQuery
             try:
-                # Use run_in_executor for sync BigQuery operation
-                loop = asyncio.get_event_loop()
                 table_ref = self.client.dataset(self.dataset_name).table(self.doc_analysis_table)
                 table = await loop.run_in_executor(None, lambda: self.client.get_table(table_ref))
-                
-                # Create row tuple in the order of table schema
+
                 row_tuple = (
                     safe_row["id"],
-                    safe_row["file_name"], 
-                    None,  # file_type - not used in current implementation
-                    analysis_timestamp,  # Pass datetime object directly for TIMESTAMP field
+                    safe_row["file_name"],
+                    None,  # file_type
+                    analysis_timestamp,
                     safe_row["raw_data"],
                     safe_row["company_name"],
                     safe_row["industry"],
@@ -552,90 +563,24 @@ Return only this JSON format:
                     safe_row["revenue_model"],
                     safe_row["funding_status"],
                     safe_row["team_size"],
-                    None,  # startup_id - nullable
+                    None,  # startup_id
                     safe_row["processing_status"],
-                    safe_row["error_message"]
+                    safe_row["error_message"],
                 )
-                
-                # Use insert_rows instead of insert_rows_json
+
                 errors = await loop.run_in_executor(
-                    None,
-                    lambda: self.client.insert_rows(table, [row_tuple])
+                    None, lambda: self.client.insert_rows(table, [row_tuple])
                 )
-                
                 if errors:
-                    logger.error(f"BigQuery insertion errors with insert_rows: {errors}")
-                    # Fallback to the JSON method with minimal data
-                    minimal_row = {
-                        "id": safe_row["id"],
-                        "file_name": safe_row["file_name"],
-                        "analysis_timestamp": safe_row["analysis_timestamp"],  # String timestamp
-                        "raw_data": "{}",  # Empty JSON to avoid serialization issues
-                        "company_name": safe_row["company_name"],
-                        "industry": safe_row["industry"],
-                        "processing_status": safe_row["processing_status"],
-                        "error_message": "Fallback insertion - raw data omitted"
-                    }
-                    
-                    # Test JSON serialization of minimal row
-                    try:
-                        json.dumps(minimal_row)
-                        logger.debug("Minimal row is JSON serializable")
-                    except Exception as min_test_error:
-                        logger.error(f"Even minimal row is not JSON serializable: {str(min_test_error)}")
-                        # Force everything to strings
-                        for key, value in minimal_row.items():
-                            if value is not None:
-                                minimal_row[key] = str(value)
-                    
-                    retry_errors = await loop.run_in_executor(
-                        None,
-                        lambda: self.client.insert_rows_json(table_ref, [minimal_row])
-                    )
-                    
-                    if retry_errors:
-                        logger.error(f"Minimal JSON insertion also failed: {retry_errors}")
-                    else:
-                        logger.info(f"Successfully stored minimal document data: {file_name}")
+                    logger.error(f"BigQuery insertion errors: {errors}")
                 else:
-                    logger.info(f"Successfully stored document in BigQuery using insert_rows: {file_name}")
-                    
+                    logger.info(f"Inserted new document for company '{safe_row['company_name']}'")
+
             except Exception as bq_error:
-                logger.error(f"Failed to insert into BigQuery: {str(bq_error)}")
-                logger.error(f"Error type: {type(bq_error)}")
-                import traceback
-                logger.error(f"Full traceback: {traceback.format_exc()}")
-                
-                # Absolute last resort - store only essential data as strings
-                try:
-                    emergency_row = {
-                        "id": str(int(analysis_timestamp.timestamp() * 1000000)),
-                        "file_name": str(file_name) if file_name else "unknown",
-                        "analysis_timestamp": analysis_timestamp.isoformat(),
-                        "company_name": str(structured_data.get("company_name", "Unknown")),
-                        "processing_status": "error",
-                        "error_message": f"Emergency insertion - original error: {str(bq_error)}"
-                    }
-                    
-                    # Verify this is completely serializable
-                    json.dumps(emergency_row)
-                    
-                    final_errors = await loop.run_in_executor(
-                        None,
-                        lambda: self.client.insert_rows_json(table_ref, [emergency_row])
-                    )
-                    
-                    if not final_errors:
-                        logger.info(f"Emergency data insertion succeeded for: {file_name}")
-                    else:
-                        logger.error(f"Emergency insertion also failed: {final_errors}")
-                        
-                except Exception as emergency_error:
-                    logger.error(f"Emergency insertion failed: {str(emergency_error)}")
-                
+                logger.error(f"BigQuery insert failed: {str(bq_error)}", exc_info=True)
+
         except Exception as e:
-            # Just log any errors - this is a background task
-            logger.error(f"Error in BigQuery storage task: {str(e)}")
+            logger.error(f"Error in BigQuery storage task: {str(e)}", exc_info=True)
         
     def _ensure_doc_analysis_table_exists(self):
         """Create the document analysis table if it doesn't exist"""
@@ -766,26 +711,116 @@ Return only this JSON format:
 
     async def ingest_startup_data(self, startup: StartupCreate) -> Dict[str, Any]:
         """
-        Ingest new startup data into BigQuery
+        Ingest new startup data into BigQuery if company name does not already exist
         """
-        table_ref = self.client.dataset(self.dataset_name).table(self.table_name)
-        table = self.client.get_table(table_ref)
-        
-        rows_to_insert = [{
-            'name': startup.name,
-            'website': startup.website,
-            'status': startup.status.value if startup.status else StartupStatus.ACTIVE.value,
-            'created_at': bigquery.ScalarQueryParameter(
-                None, 'TIMESTAMP', bigquery.CURRENT_TIMESTAMP
-            ),
-            'updated_at': bigquery.ScalarQueryParameter(
-                None, 'TIMESTAMP', bigquery.CURRENT_TIMESTAMP
-            )
-        }]
-        
-        errors = self.client.insert_rows_json(table, rows_to_insert)
-        
-        if errors:
-            raise Exception(f"Errors occurred while ingesting data: {errors}")
+        try:
+            # Check if company already exists (case-insensitive match)
+            query = f"""
+            SELECT id, name
+            FROM `{self.dataset_name}.{self.table_name}`
+            WHERE LOWER(name) = LOWER(@company_name)
+            LIMIT 1
+            """
             
-        return rows_to_insert[0]
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("company_name", "STRING", startup.name)
+                ]
+            )
+
+            query_job = self.client.query(query, job_config=job_config)
+            results = query_job.result()
+
+            existing = [dict(row.items()) for row in results]
+            if existing:
+                logger.info(f"Startup '{startup.name}' already exists with id {existing[0].get('id')}")
+                return {
+                    "message": f"Startup '{startup.name}' already exists",
+                    "existing_record": existing[0]
+                }
+
+            # Prepare insert if not exists
+            table_ref = self.client.dataset(self.dataset_name).table(self.table_name)
+            table = self.client.get_table(table_ref)
+            
+            rows_to_insert = [{
+                'name': startup.name,
+                'website': startup.website,
+                'status': startup.status.value if startup.status else StartupStatus.ACTIVE.value,
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat()
+            }]
+            
+            errors = self.client.insert_rows_json(table, rows_to_insert)
+            
+            if errors:
+                raise Exception(f"Errors occurred while ingesting data: {errors}")
+                
+            logger.info(f"Inserted new startup '{startup.name}'")
+            return rows_to_insert[0]
+
+        except Exception as e:
+            logger.error(f"Error in ingest_startup_data: {str(e)}")
+            raise
+
+    async def fetch_document_analysis(
+        self,
+        company_name: Optional[str] = None,
+        industry: Optional[str] = None,
+        founding_year_min: Optional[int] = None,
+        founding_year_max: Optional[int] = None,
+        company_stage: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Fetch document analysis records with optional filters"""
+
+        # Validate year range
+        if founding_year_min is not None and founding_year_max is not None:
+            if founding_year_max < founding_year_min:
+                raise ValueError("founding_year_max cannot be less than founding_year_min")
+
+        filters = []
+        params = []
+
+        if company_name:
+            filters.append("LOWER(company_name) LIKE LOWER(@company_name)")
+            params.append(bigquery.ScalarQueryParameter("company_name", "STRING", f"{company_name}%"))
+
+        if industry:
+            filters.append("LOWER(industry) LIKE LOWER(@industry)")
+            params.append(bigquery.ScalarQueryParameter("industry", "STRING", f"{industry}%"))
+
+        if founding_year_min is not None:
+            filters.append("founding_year >= @founding_year_min")
+            params.append(bigquery.ScalarQueryParameter("founding_year_min", "INT64", founding_year_min))
+
+        if founding_year_max is not None:
+            filters.append("founding_year <= @founding_year_max")
+            params.append(bigquery.ScalarQueryParameter("founding_year_max", "INT64", founding_year_max))
+
+        if company_stage:
+            filters.append("LOWER(company_stage) LIKE LOWER(@company_stage)")
+            params.append(bigquery.ScalarQueryParameter("company_stage", "STRING", f"{company_stage}%"))
+
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+
+        query = f"""
+        SELECT 
+            id, file_name, analysis_timestamp, company_name, industry, founding_year,
+            company_stage, key_products, target_market, competitive_advantage,
+            revenue_model, funding_status, team_size, processing_status, error_message
+        FROM `{self.dataset_name}.{self.doc_analysis_table}`
+        {where_clause}
+        ORDER BY analysis_timestamp DESC
+        LIMIT @limit
+        """
+
+        params.append(bigquery.ScalarQueryParameter("limit", "INT64", limit))
+        job_config = bigquery.QueryJobConfig(query_parameters=params)
+
+        logger.info(f"Running query on document_analysis with filters: {filters}")
+
+        loop = asyncio.get_event_loop()
+        query_job = await loop.run_in_executor(None, lambda: self.client.query(query, job_config=job_config).result())
+        rows = [dict(row.items()) for row in query_job]
+        return rows
