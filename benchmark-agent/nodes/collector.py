@@ -1,6 +1,9 @@
+import logging
 from langchain_core.messages import AIMessage
 
 from classes import ResearchState
+
+logger = logging.getLogger(__name__)
 
 
 class Collector:
@@ -8,8 +11,13 @@ class Collector:
 
     async def collect(self, state: ResearchState) -> ResearchState:
         """Collect and verify all research data is present."""
+        if state is None:
+            logger.error("State is None in collector!")
+            return {"error": "State is None"}
+
         company = state.get('company', 'Unknown Company')
         msg = [f"📦 Collecting research data for {company}:"]
+        logger.info(f"Collector processing state for {company}")
 
         if websocket_manager := state.get('websocket_manager'):
             if job_id := state.get('job_id'):
@@ -20,12 +28,18 @@ class Collector:
                     result={"step": "Collecting"}
                 )
         
-        # Check each type of research data
+        # Check each type of research data (original + benchmark vectors)
         research_types = {
             'financial_data': '💰 Financial',
             'news_data': '📰 News',
             'industry_data': '🏭 Industry',
-            'company_data': '🏢 Company'
+            'company_data': '🏢 Company',
+            'companies_products_data': '🏆 Companies & Products',
+            'consumer_brands_data': '👥 Consumer & Brands',
+            'countries_regions_data': '🌍 Countries & Regions',
+            'digital_trends_data': '💻 Digital & Trends',
+            'industries_markets_data': '📊 Industries & Markets',
+            'politics_society_data': '🏛️ Politics & Society'
         }
         
         for data_field, label in research_types.items():

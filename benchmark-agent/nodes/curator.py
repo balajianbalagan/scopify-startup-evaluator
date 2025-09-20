@@ -121,7 +121,13 @@ class Curator:
             'financial_data': ('💰 Financial', 'financial'),
             'news_data': ('📰 News', 'news'),
             'industry_data': ('🏭 Industry', 'industry'),
-            'company_data': ('🏢 Company', 'company')
+            'company_data': ('🏢 Company', 'company'),
+            'companies_products_data': ('🏆 Companies & Products', 'companies_products'),
+            'consumer_brands_data': ('👥 Consumer & Brands', 'consumer_brands'),
+            'countries_regions_data': ('🌍 Countries & Regions', 'countries_regions'),
+            'digital_trends_data': ('💻 Digital & Trends', 'digital_trends'),
+            'industries_markets_data': ('📊 Industries & Markets', 'industries_markets'),
+            'politics_society_data': ('🏛️ Politics & Society', 'politics_society')
         }
 
         # Create all evaluation tasks upfront

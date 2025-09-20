@@ -18,9 +18,9 @@ class Briefing:
         if not self.gemini_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
         
-        # Configure Gemini
+        # Configure Gemini - using Flash Lite for faster processing
         genai.configure(api_key=self.gemini_key)
-        self.gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+        self.gemini_model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
     async def generate_category_briefing(
         self, docs: Union[Dict[str, Any], List[Dict[str, Any]]], 
@@ -143,6 +143,180 @@ Key requirements:
 4. Do not mention "no information found" or "no data available"
 5. Never use ### headers, only bullet points
 6. Provide only the briefing. Do not provide explanations or commentary.""",
+
+            'companies_products': f"""Create a comprehensive competitive benchmarking briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Market Leaders
+* List top 5 companies in the industry with revenue/valuation
+* Include market share percentages where available
+* List stock performance for public companies
+
+### Direct Competitors
+* List companies competing directly with {company}
+* Include their key product offerings
+* Compare company sizes (employees, revenue, funding)
+
+### Product Benchmarking
+* Compare feature sets and capabilities
+* List pricing models and strategies
+* Include customer bases and target markets
+
+### Performance Metrics
+* Revenue comparisons where available
+* Growth rates and market positioning
+* Employee counts and company valuations
+
+2. Focus on quantitative benchmarking data
+3. Include specific numbers and metrics
+4. Provide only verified information
+5. No explanations or commentary.""",
+
+            'consumer_brands': f"""Create a consumer behavior and brand analysis briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Consumer Sentiment
+* Brand perception and reputation scores
+* Customer satisfaction metrics
+* Social media sentiment analysis
+
+### Usage Patterns
+* Adoption rates and user engagement
+* Demographics of typical users
+* Regional preferences and behaviors
+
+### Market Preferences
+* Consumer trends affecting the industry
+* Preference shifts and emerging behaviors
+* Competitive brand loyalty patterns
+
+### Customer Insights
+* Survey data and market research findings
+* User feedback and review analysis
+* Purchase decision factors
+
+2. Focus on consumer behavior insights
+3. Include demographic and psychographic data
+4. Reference survey data and market research
+5. No explanations or commentary.""",
+
+            'countries_regions': f"""Create a regional economic and market analysis briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Economic Indicators
+* GDP growth rates for relevant regions
+* Market size by country/region
+* Economic development status
+
+### Market Opportunities
+* Regional market penetration rates
+* Growth potential by geography
+* Market entry barriers and opportunities
+
+### Regulatory Environment
+* Key regulations affecting the industry
+* Government policies and initiatives
+* Trade policies and business environment
+
+### Regional Competition
+* Major players by region
+* Local market leaders and competitors
+* Regional competitive advantages
+
+2. Focus on macroeconomic context
+3. Include specific economic data and metrics
+4. Cover regulatory and policy landscape
+5. No explanations or commentary.""",
+
+            'digital_trends': f"""Create a technology and digital transformation briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Technology Adoption
+* Digital transformation trends in the industry
+* Technology adoption rates and timelines
+* Innovation cycles and emerging technologies
+
+### Industry Digitalization
+* Automation and AI implementation
+* Cloud computing and infrastructure trends
+* Cybersecurity requirements and standards
+
+### Emerging Technologies
+* Impact of 5G, IoT, blockchain on the sector
+* Virtual/Augmented reality applications
+* Machine learning and AI use cases
+
+### Digital Competitive Landscape
+* Technology leaders and innovators
+* Digital product offerings and capabilities
+* Technology investment trends
+
+2. Focus on technology impact and adoption
+3. Include specific technology metrics
+4. Cover innovation and disruption patterns
+5. No explanations or commentary.""",
+
+            'industries_markets': f"""Create a comprehensive industry and market analysis briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Industry Overview
+* Total market size and revenue
+* Industry growth rates and projections
+* Key market segments and subsectors
+
+### Market Dynamics
+* Supply and demand patterns
+* Pricing trends and models
+* Market consolidation and M&A activity
+
+### Industry Performance
+* Revenue trends and profitability
+* Employment and workforce statistics
+* Investment flows and funding patterns
+
+### Market Forecasts
+* Growth projections and market outlook
+* Emerging opportunities and threats
+* Industry transformation trends
+
+2. Focus on comprehensive market data
+3. Include specific revenue and growth metrics
+4. Cover industry-wide trends and patterns
+5. No explanations or commentary.""",
+
+            'politics_society': f"""Create a political and social context briefing for {company}, a {industry} company based in {hq_location}.
+Key requirements:
+1. Structure using these exact headers and bullet points:
+
+### Political Environment
+* Government stability and business climate
+* Election outcomes affecting the industry
+* Policy changes and regulatory shifts
+
+### Social Trends
+* Demographic changes affecting the market
+* Social movements and consumer behavior
+* Educational and workforce development
+
+### ESG Factors
+* Environmental regulations and requirements
+* Social responsibility expectations
+* Governance standards and compliance
+
+### Societal Impact
+* Employment and economic contribution
+* Community development initiatives
+* Social innovation and impact metrics
+
+2. Focus on political and social context
+3. Include demographic and policy data
+4. Cover ESG and sustainability factors
+5. No explanations or commentary.""",
         }
         
         # Normalize docs to a list of (url, doc) tuples
@@ -234,7 +408,13 @@ Analyze the following documents and extract key information. Provide only the br
             'financial_data': ("financial", "financial_briefing"),
             'news_data': ("news", "news_briefing"),
             'industry_data': ("industry", "industry_briefing"),
-            'company_data': ("company", "company_briefing")
+            'company_data': ("company", "company_briefing"),
+            'companies_products_data': ("companies_products", "companies_products_briefing"),
+            'consumer_brands_data': ("consumer_brands", "consumer_brands_briefing"),
+            'countries_regions_data': ("countries_regions", "countries_regions_briefing"),
+            'digital_trends_data': ("digital_trends", "digital_trends_briefing"),
+            'industries_markets_data': ("industries_markets", "industries_markets_briefing"),
+            'politics_society_data': ("politics_society", "politics_society_briefing")
         }
         
         briefings = {}

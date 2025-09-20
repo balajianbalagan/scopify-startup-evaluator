@@ -22,7 +22,7 @@ class BaseResearcher:
 
         self.tavily_client = AsyncTavilyClient(api_key=tavily_key)
         genai.configure(api_key=gemini_key)
-        self.gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+        self.gemini_model = genai.GenerativeModel('gemini-2.5-flash-lite')
         self.analyst_type = "base_researcher"  # Default type
 
     @property
@@ -255,6 +255,10 @@ Researching {company} on {datetime.now().strftime("%B %d, %Y")}.
         """
         Execute all Tavily searches in parallel at maximum speed
         """
+        if state is None:
+            logger.error("State is None in search_documents!")
+            return {}
+
         websocket_manager = state.get('websocket_manager')
         job_id = state.get('job_id')
 
