@@ -33,9 +33,43 @@ class BigQueryService:
         
         # Ensure document analysis table exists
         self._ensure_doc_analysis_table_exists()
+    
+    def _construct_gcs_url(self, file_name: str) -> str:
+        """Construct GCS URL based on the standard file storage pattern"""
+        try:
+            # Get bucket name from settings
+            bucket_name = getattr(settings, 'GCS_BUCKET_NAME', None)
+            if not bucket_name:
+                logger.warning("GCS_BUCKET_NAME not found in settings")
+                # Try alternative setting names that might be used
+                bucket_name = getattr(settings, 'BUCKET_NAME', None) or \
+                            getattr(settings, 'GOOGLE_CLOUD_BUCKET', None) or \
+                            getattr(settings, 'STORAGE_BUCKET_NAME', None)
+                
+                if not bucket_name:
+                    logger.error("No GCS bucket name found in settings. Using fallback.")
+                    bucket_name = "scopify-documents"  # Fallback bucket name
+            
+            # Construct GCS URL based on standard upload pattern
+            # This matches the pattern used in the router: f"uploads/{file.filename}"
+            gcs_url = f"gs://{bucket_name}/uploads/{file_name}"
+            logger.info(f"Constructed GCS URL: {gcs_url}")
+            return gcs_url
+            
+        except Exception as e:
+            logger.error(f"Error constructing GCS URL for {file_name}: {str(e)}")
+            return f"gs://scopify-documents/uploads/{file_name}"
         
-    async def process_and_store_document(self, vision_result: Dict[str, Any], file_name: str) -> Dict[str, Any]:
+    async def process_and_store_document(self, vision_result: Dict[str, Any], file_name: str, gcs_url: str = None) -> Dict[str, Any]:
         """Process document with AI models and store in BigQuery"""
+        
+        # If gcs_url is not provided, construct it based on the standard storage pattern
+        if not gcs_url:
+            gcs_url = self._construct_gcs_url(file_name)
+            logger.info(f"Auto-constructed GCS URL: {gcs_url}")
+        else:
+            logger.info(f"Using provided GCS URL: {gcs_url}")
+        
         try:
             # Initialize Vertex AI for this request
             try:
@@ -56,6 +90,7 @@ class BigQueryService:
                     return {
                         "error": "Insufficient text content for analysis",
                         "company_name": "Unknown",
+                        "pitch_deck_url": gcs_url,  # Include GCS URL even in error case
                         "raw_vision_data": vision_result
                     }
                 
@@ -129,6 +164,9 @@ JSON response:"""
                         
                         # Validate and clean the structured data
                         structured_data = self._validate_and_clean_data(structured_data)
+
+                        # Ensure pitch_deck_url is included with the GCS URL
+                        structured_data["pitch_deck_url"] = gcs_url
                         
                         # Start BigQuery storage in background
                         asyncio.create_task(
@@ -153,7 +191,7 @@ JSON response:"""
 
                 # If all retries failed, try with fallback model
                 logger.warning(f"Primary model failed, trying fallback for {file_name}")
-                fallback_result = await self._try_fallback_analysis(text_content, vision_result, file_name)
+                fallback_result = await self._try_fallback_analysis(text_content, vision_result, file_name, gcs_url)
                 if fallback_result:
                     return fallback_result
 
@@ -163,6 +201,7 @@ JSON response:"""
                     "error": f"Failed to analyze document after {max_retries} attempts: {last_error}",
                     "company_name": "Analysis Failed",
                     "industry": "Unknown",
+                    "pitch_deck_url": gcs_url,  # Include GCS URL even in error case
                     "raw_vision_data": vision_result
                 }
                 
@@ -172,6 +211,7 @@ JSON response:"""
                     "error": f"Failed to initialize AI models: {str(model_error)}",
                     "company_name": "Model Error",
                     "industry": "Unknown",
+                    "pitch_deck_url": gcs_url,  # Include GCS URL even in error case
                     "raw_vision_data": vision_result
                 }
                 
@@ -180,7 +220,8 @@ JSON response:"""
             return {
                 "error": f"Unexpected error in document analysis: {str(e)}",
                 "company_name": "System Error",
-                "industry": "Unknown", 
+                "industry": "Unknown",
+                "pitch_deck_url": gcs_url,  # Include GCS URL even in error case
                 "raw_vision_data": vision_result
             }
 
@@ -282,7 +323,7 @@ JSON response:"""
         
         return cleaned_data
 
-    async def _try_fallback_analysis(self, text_content: str, vision_result: Dict[str, Any], file_name: str) -> Optional[Dict[str, Any]]:
+    async def _try_fallback_analysis(self, text_content: str, vision_result: Dict[str, Any], file_name: str, gcs_url: str = None) -> Optional[Dict[str, Any]]:
         """Try simpler analysis as fallback"""
         try:
             # Use Gemini Flash as fallback
@@ -323,6 +364,7 @@ Return only this JSON format:
                         "revenue_model": "Unknown", 
                         "funding_status": "Unknown",
                         "team_size": None,
+                        "pitch_deck_url": gcs_url,  # Include GCS URL
                         "fallback_analysis": True
                     }
                     
@@ -394,6 +436,9 @@ Return only this JSON format:
             
             # Pre-process raw_data to remove any datetime objects
             safe_vision_result = self._clean_datetime_objects(vision_result)
+            
+            # Get the pitch_deck_url from structured_data
+            pitch_deck_url = structured_data.get("pitch_deck_url")
             
             # Create completely safe row data - all strings and basic types only
             safe_row = {
@@ -488,6 +533,9 @@ Return only this JSON format:
                     {"error": "Could not serialize vision result", "type": str(type(vision_result))}
                 )
 
+            # Get the pitch_deck_url from structured_data (it should already be set)
+            pitch_deck_url = structured_data.get("pitch_deck_url")
+
             # Build safe structured row
             safe_row = {
                 "file_name": str(file_name) if file_name else "",
@@ -509,10 +557,6 @@ Return only this JSON format:
 
             # ✅ 1. Insert (or upsert) into startups table
             try:
-                # Inside _store_in_bigquery
-                pitch_deck_url = structured_data.get("pitch_deck_url")  # should be set before calling this method
-                raw_data_str = self._safe_json_dumps(vision_result)
-
                 startup_query = f"""
                 MERGE `{self.dataset_name}.startups` T
                 USING (SELECT @company_name AS company_name, @industry AS industry, @founding_year AS founded_year) S
@@ -547,7 +591,6 @@ Return only this JSON format:
                         bigquery.ScalarQueryParameter("pitch_deck_url", "STRING", pitch_deck_url)
                     ]
                 )
-
 
                 await loop.run_in_executor(
                     None, lambda: self.client.query(startup_query, job_config=startup_job_config).result()
@@ -857,3 +900,75 @@ Return only this JSON format:
         query_job = await loop.run_in_executor(None, lambda: self.client.query(query, job_config=job_config).result())
         rows = [dict(row.items()) for row in query_job]
         return rows
+    
+    async def update_pitch_deck_url(self, startup_id: int, pitch_deck_url: str) -> bool:
+        """Update the pitch_deck_url for a specific startup"""
+        try:
+            query = f"""
+            UPDATE `{self.dataset_name}.{self.table_name}`
+            SET pitch_deck_url = @pitch_deck_url, updated_at = CURRENT_TIMESTAMP()
+            WHERE id = @startup_id
+            """
+            
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("pitch_deck_url", "STRING", pitch_deck_url),
+                    bigquery.ScalarQueryParameter("startup_id", "INT64", startup_id)
+                ]
+            )
+            
+            query_job = self.client.query(query, job_config=job_config)
+            query_job.result()  # Wait for completion
+            
+            logger.info(f"Updated pitch_deck_url for startup {startup_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating pitch_deck_url for startup {startup_id}: {str(e)}")
+            return False
+    
+    async def fix_null_pitch_deck_urls(self, bucket_name: str, base_path: str = "documents") -> Dict[str, Any]:
+        """Fix existing records with null pitch_deck_url by constructing URLs based on company name"""
+        try:
+            # Get all records with null pitch_deck_url
+            query = f"""
+            SELECT id, name
+            FROM `{self.dataset_name}.{self.table_name}`
+            WHERE pitch_deck_url IS NULL
+            """
+            
+            query_job = self.client.query(query)
+            results = query_job.result()
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for row in results:
+                startup_id = row['id']
+                company_name = row['name']
+                
+                # Construct GCS URL based on company name
+                # You can modify this pattern based on your actual file naming convention
+                safe_name = company_name.lower().replace(' ', '_').replace('-', '_')
+                constructed_url = f"gs://{bucket_name}/{base_path}/{safe_name}.pdf"
+                
+                # Update the record
+                success = await self.update_pitch_deck_url(startup_id, constructed_url)
+                if success:
+                    updated_count += 1
+                else:
+                    failed_count += 1
+            
+            return {
+                "updated_count": updated_count,
+                "failed_count": failed_count,
+                "message": f"Updated {updated_count} records, {failed_count} failed"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in fix_null_pitch_deck_urls: {str(e)}")
+            return {
+                "updated_count": 0,
+                "failed_count": 0,
+                "error": str(e)
+            }

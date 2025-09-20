@@ -104,6 +104,7 @@ async def process_document(file: UploadFile = File(...)):
 
     temp_file = None
     temp_path = None
+    gcs_url = None  # Initialize gcs_url
     
     try:
         # Create a temp file for upload
@@ -120,30 +121,31 @@ async def process_document(file: UploadFile = File(...)):
 
         vision_service = VisionService()
 
-        # If it's a PDF → upload to GCS and process with asyncBatch
+        # Always upload to GCS first to get the proper gcs_url
+        from google.cloud import storage
+        storage_client = storage.Client()
+        bucket_name = settings.GCS_BUCKET_NAME
+        bucket = storage_client.bucket(bucket_name)
+
+        # Upload file to GCS using the original filename
+        blob_name = f"uploads/{file.filename}"
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(temp_path)
+        gcs_url = f"gs://{bucket_name}/{blob_name}"
+        logger.info(f"Uploaded file to GCS: {gcs_url}")
+
+        # If it's a PDF → process with asyncBatch
         if file.filename.lower().endswith(".pdf"):
-            logger.info("Detected PDF. Uploading to GCS for async OCR...")
-
-            from google.cloud import storage
-            storage_client = storage.Client()
-
-            bucket_name = settings.GCS_BUCKET_NAME  # Make sure this exists in settings
-            bucket = storage_client.bucket(bucket_name)
-
-            # Upload file to GCS
-            blob_name = f"uploads/{os.path.basename(temp_path)}"
-            blob = bucket.blob(blob_name)
-            blob.upload_from_filename(temp_path)
-            gcs_source_uri = f"gs://{bucket_name}/{blob_name}"
-
+            logger.info("Detected PDF. Using GCS for async OCR...")
+            
             # Choose an output prefix
-            gcs_destination_uri = f"gs://{bucket_name}/vision_output/{os.path.basename(temp_path)}/"
-
-            logger.info(f"Processing PDF from {gcs_source_uri}, results to {gcs_destination_uri}")
-            result = await vision_service.process_pdf_gcs(gcs_source_uri, gcs_destination_uri)
+            gcs_destination_uri = f"gs://{bucket_name}/vision_output/{file.filename}/"
+            
+            logger.info(f"Processing PDF from {gcs_url}, results to {gcs_destination_uri}")
+            result = await vision_service.process_pdf_gcs(gcs_url, gcs_destination_uri)
 
         else:
-            # For images → process locally
+            # For images → process locally (but we already uploaded to GCS)
             logger.info("Detected image file. Using local Vision API OCR...")
             result = await vision_service.process_document(temp_path)
 
@@ -151,7 +153,8 @@ async def process_document(file: UploadFile = File(...)):
         bq_service = BigQueryService()
         processed_result = await bq_service.process_and_store_document(
             vision_result=result,
-            file_name=file.filename
+            file_name=file.filename,
+            gcs_url=gcs_url  # Pass the actual GCS URL
         )
 
         # If we got basic error response from processing
