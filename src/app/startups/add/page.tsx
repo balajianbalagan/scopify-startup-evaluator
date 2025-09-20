@@ -54,6 +54,11 @@ export default function AddStartupEntry() {
       try {
         const created = await startupApiService.createCompanyFromAnalysis(result, extras);
         if (created?.id) {
+          try {
+            await agentService.benchmarkResearch(result, created.id);
+          } catch (e: any) {
+            console.error('Benchmark research failed:', e);
+          }
           router.push(`/companies/${created.id}`);
           return;
         }
@@ -99,6 +104,18 @@ export default function AddStartupEntry() {
                 {uploading ? 'Uploading…' : 'Ingest Pitch Deck'}
               </button>
             </div>
+            {uploading && (
+              <div className="mt-8 flex flex-col items-center justify-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-6 w-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+                  <span className="text-indigo-700 font-medium text-base">Processing your pitch deck…</span>
+                </div>
+                <div className="text-xs text-gray-500 text-center max-w-md">
+                  This may take up to a minute. We're analyzing your document, extracting insights, and uploading to Database.<br />
+                  Please don't close this tab.
+                </div>
+              </div>
+            )}
           </div>
         )}
 

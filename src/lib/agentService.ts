@@ -45,8 +45,9 @@ class AgentService {
     return res.json();
   }
 
-  async benchmarkResearch(payload: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/agent/benchmark/research`, {
+  async benchmarkResearch(payload: any, companyId: number): Promise<any> {
+    const url = `${API_BASE_URL}/agent/benchmark/research?company_id=${encodeURIComponent(companyId)}`;
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         ...this.getAuthHeader(),
@@ -71,9 +72,10 @@ class AgentService {
     return res.json();
   }
 
-  async getBenchmarkResearchProgress(sessionId: string): Promise<any> {
+  async getBenchmarkResearchProgress(sessionId: string, companyId: number): Promise<any> {
     if (!sessionId) throw new Error('sessionId is required');
-    const url = `${API_BASE_URL}/agent/benchmark/research/${encodeURIComponent(sessionId)}/progress`;
+    if (!companyId) throw new Error('companyId is required');
+    const url = `${API_BASE_URL}/agent/benchmark/research/${encodeURIComponent(sessionId)}/progress?company_id=${encodeURIComponent(companyId)}`;
     const res = await fetch(url, {
       method: "GET",
       headers: {

@@ -206,6 +206,23 @@ export class StartupApiService {
     console.log('[startupApi] getCompanySearch: success', { id: json?.id, company_name: json?.company_name });
     return json as CompanySearch;
   }
+
+  async updateCompanyInfo(companyId: number, updateData: Record<string, any>): Promise<Company> {
+    if (!Number.isFinite(companyId)) throw new Error('Invalid company id');
+    const url = `${API_BASE_URL}/company/${companyId}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(updateData),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      throw new Error(msg || 'Failed to update company information');
+    }
+
+    return res.json();
+  }
 }
 
 // Export a singleton instance

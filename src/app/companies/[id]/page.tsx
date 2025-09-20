@@ -1,21 +1,53 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AnalysisView from '@/components/analysis/AnalysisView';
 import { startupApiService } from '@/lib/startupApi';
+import { agentService } from '@/lib/agentService';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type SectionKey = 1 | 2 | 3 | 4;
 
 type Company = {
   id: number;
   company_name: string;
+  ai_generated_info?: any;
   search_query?: string | null;
   search_timestamp?: string | null;
   requested_by_id?: number | null;
+  pitch_deck_url?: string | null;
+  benchmark_status?: string | null;
+  benchmark_info?: string | null;
+  dealnote_info?: string | null;
+  deal_notes_status?: string | null;
+  benchmark_job_id?: string | null;
+  deal_notes_job_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
-  ai_generated_info?: any;
+};
+
+type BenchmarkProgress = {
+  job_id: string;
+  status: string;
+  current_step: string;
+  progress_percentage: number;
+  steps_completed: string[];
+  total_steps: number;
+  company: any;
+  last_update: string;
+  error: string | null;
+  has_report: boolean;
+  estimated_time_remaining: string | null;
+};
+
+type BenchmarkReport = {
+  report: string;
+  company: string;
+  status: string;
+  references: string[];
+  reference_info: any;
 };
 
 export default function CompanyDetailsPage() {
@@ -28,6 +60,15 @@ export default function CompanyDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [section, setSection] = useState<SectionKey>(1);
 
+  const [progress, setProgress] = useState<BenchmarkProgress | null>(null);
+  const [report, setReport] = useState<BenchmarkReport | null>(null);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+  function getBenchmarkJobId(company: Company | null): string | null {
+    return company?.ai_generated_info?.benchmark_job_id || company?.benchmark_job_id || null;
+  }
+
   const sections: { key: SectionKey; label: string; icon: string }[] = useMemo(
     () => [
       { key: 1, label: 'Overview', icon: '🏠' },
@@ -37,6 +78,10 @@ export default function CompanyDetailsPage() {
     ],
     []
   );
+
+  function getStoredBenchmarkReport(company: Company | null): string | null {
+    return company?.benchmark_info ?? null;
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -73,6 +118,88 @@ export default function CompanyDetailsPage() {
       mounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    // Only poll if section is 2 and company is loaded
+    if (section !== 2 || !company) {
+      setProgress(null);
+      setReport(null);
+      setProgressError(null);
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+
+    const storedReport = getStoredBenchmarkReport(company);
+    if (storedReport) {
+      setReport({
+        report: storedReport,
+        company: company.company_name,
+        status: 'completed',
+        references: [],
+        reference_info: {},
+      });
+      setProgress(null);
+      setProgressError(null);
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+
+    let stopped = false;
+    const jobId = getBenchmarkJobId(company);
+    if (!jobId) {
+      setProgressError('No benchmark job found for this company.');
+      return;
+    }
+
+    async function pollProgress() {
+      try {
+        setProgressError(null);
+        const prog = await agentService.getBenchmarkResearchProgress(jobId, company.id);
+        setProgress(prog);
+
+        if (prog.status === 'completed' && prog.has_report) {
+          // Stop polling and fetch report
+          if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+          const rep = await agentService.getBenchmarkResearchReport(jobId);
+          setReport(rep);
+
+          try {
+            await startupApiService.updateCompanyInfo(company.id, {
+              benchmark_info: rep.report,
+            });
+            const updated = await startupApiService.getCompanySearch(company.id);
+            setCompany(updated as Company);
+          } catch (e: any) {
+            console.error('Failed to save benchmark report:', e);
+          }
+        }
+      } catch (e: any) {
+        setProgressError(e?.message || 'Failed to fetch benchmark progress');
+      }
+    }
+
+    pollProgress();
+    pollRef.current = setInterval(() => {
+      if (!stopped) pollProgress();
+    }, 10000);
+
+    return () => {
+      stopped = true;
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [section, company]);
 
   if (loading) {
     return (
@@ -151,18 +278,72 @@ export default function CompanyDetailsPage() {
           {section === 2 && (
             <div className="p-5 bg-white border rounded-2xl shadow-sm">
               <h2 className="font-semibold mb-2">2 — Benchmarks</h2>
-              <p className="text-sm text-gray-500">ARR vs peers, burn multiple, CAC/LTV</p>
-              <div className="mt-4 flex gap-2">
-                <button onClick={() => setSection(1)} className="px-3 py-1.5 border rounded-md">
-                  Back
-                </button>
-                <button
-                  onClick={() => setSection(3)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md"
-                >
-                  Next: Flags
-                </button>
-              </div>
+              <p className="text-sm text-gray-500 mb-4">ARR vs peers, burn multiple, CAC/LTV</p>
+              {progressError && (
+                <div className="mb-3 text-red-600 text-sm">{progressError}</div>
+              )}
+              {!progress && !report && !progressError && (
+                <div className="text-gray-500 text-sm">Loading benchmark progress…</div>
+              )}
+              {progress && !report && (
+                <div>
+                  <div className="mb-2 font-medium">
+                    Status: <span className="capitalize">{progress.status}</span>
+                  </div>
+                  <div className="mb-2 text-sm text-gray-600">
+                    Current step: {progress.current_step}
+                  </div>
+                  <div className="mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className="bg-indigo-600 h-4 rounded-full transition-all"
+                        style={{ width: `${progress.progress_percentage}%` }}
+                      />
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {progress.progress_percentage}% complete
+                      {progress.estimated_time_remaining && (
+                        <> &middot; Est. time left: {progress.estimated_time_remaining}</>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mb-2 text-xs text-gray-500">
+                    Steps completed: {progress.steps_completed?.join(', ')}
+                  </div>
+                  <div className="mb-2 text-xs text-gray-500">
+                    Last update: {new Date(progress.last_update).toLocaleString()}
+                  </div>
+                </div>
+              )}
+              {report && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-2">Benchmark Report</h3>
+                  <div className="prose lg:prose-xl max-w-none mb-4">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {report.report}
+                    </ReactMarkdown>
+                  </div>
+                  {report.references && report.references.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-2">References</h4>
+                      <ul className="list-disc ml-6">
+                        {report.references.map((ref, idx) => (
+                          <li key={idx}>
+                            <a
+                              href={ref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-700 underline break-all"
+                            >
+                              {ref}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
