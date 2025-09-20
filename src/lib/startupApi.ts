@@ -105,14 +105,9 @@ export class StartupApiService {
     }
   ): CompanyCreate {
     const company_name =
-      analysis?.named_entities?.organizations?.company?.legal_name?.toString()?.trim();
+      analysis?.named_entities?.organizations?.company?.legal_name?.toString()?.trim() != null? analysis?.named_entities?.organizations?.company?.legal_name?.toString()?.trim()  : analysis?.named_entities?.organizations?.company?.brand_names[0] ?? 'Unnamed Company';
+    
 
-    if (!company_name) {
-      console.error('[startupApi] buildCompanyPayloadFromAnalysis: legal_name missing', {
-        path: 'named_entities.organizations.company.legal_name',
-      });
-      throw new Error("Company legal_name not found in analysis payload.");
-    }
 
     const payload: CompanyCreate = {
       company_name,
