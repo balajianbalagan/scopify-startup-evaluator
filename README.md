@@ -46,15 +46,3 @@ adk web
 ```
 
 ---
-
-
-
-docker push gcr.io/hackathons-fav/benchmark-agent
-
-gcloud run deploy benchmark-agent \
-    --source . \
-    --platform managed \
-    --region us-central1 \
-    --allow-unauthenticated \
-    --port 8080 \
-    --set-env-vars GEMINI_API_KEY=AIzaSyAMuw1oSxSLwz3mfCrX9dyI3OrNs5LrHtk,TAVILY_API_KEY=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
