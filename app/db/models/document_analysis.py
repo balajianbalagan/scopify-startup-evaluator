@@ -11,7 +11,7 @@ class DocumentAnalysis(Base):
     file_type = Column(String)
     analysis_timestamp = Column(DateTime, default=datetime.utcnow)
     raw_data = Column(JSON)  # Stores the complete Vision API response
-    
+
     # Processed data fields
     company_name = Column(String, index=True)
     industry = Column(String, index=True)
@@ -23,24 +23,13 @@ class DocumentAnalysis(Base):
     revenue_model = Column(String)
     funding_status = Column(String)
     team_size = Column(Integer)
-    
-    # Relations
+
+    # ✅ Foreign Key to Startup
     startup_id = Column(Integer, ForeignKey("startups.id"), nullable=True)
+
+    # ✅ Relationship back to Startup
     startup = relationship("Startup", back_populates="document_analyses")
-    
-    # Processing status
-    processing_status = Column(String, default="pending")  # pending, completed, failed
-    error_message = Column(String, nullable=True)
-    target_market = Column(String)
-    competitive_advantage = Column(String)
-    revenue_model = Column(String)
-    funding_status = Column(String)
-    team_size = Column(Integer)
-    
-    # Relations
-    startup_id = Column(Integer, ForeignKey("startups.id"), nullable=True)
-    startup = relationship("Startup", back_populates="document_analyses")
-    
+
     # Processing status
     processing_status = Column(String, default="pending")  # pending, completed, failed
     error_message = Column(String, nullable=True)

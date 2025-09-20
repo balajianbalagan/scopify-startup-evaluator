@@ -46,6 +46,9 @@ class Startup(Base):
     challenges = Column(Text, nullable=True)
     differentiator = Column(Text, nullable=True)
     competitors = Column(Text, nullable=True)  # JSON string for list of competitors
+
+    pitch_deck_url = Column(String(500), nullable=True)  # Pitch deck file URL
+    raw_data = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(

@@ -475,7 +475,7 @@ Return only this JSON format:
         file_name: str,
         structured_data: Dict[str, Any]
     ) -> None:
-        """Background task to store document analysis in BigQuery, skipping duplicates"""
+        """Background task to store document analysis in BigQuery, linking to startups table"""
         try:
             analysis_timestamp = datetime.utcnow()
 
@@ -488,11 +488,9 @@ Return only this JSON format:
                     {"error": "Could not serialize vision result", "type": str(type(vision_result))}
                 )
 
+            # Build safe structured row
             safe_row = {
-                "id": str(int(analysis_timestamp.timestamp() * 1000000)),
                 "file_name": str(file_name) if file_name else "",
-                "analysis_timestamp": analysis_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] + ' UTC',
-                "raw_data": raw_data_str,
                 "company_name": str(structured_data.get("company_name")) if structured_data.get("company_name") else None,
                 "industry": str(structured_data.get("industry")) if structured_data.get("industry") else None,
                 "founding_year": int(structured_data["founding_year"]) if structured_data.get("founding_year") and str(structured_data["founding_year"]).isdigit() else None,
@@ -507,52 +505,86 @@ Return only this JSON format:
                 "error_message": str(structured_data.get("error")) if structured_data.get("error") else None
             }
 
-            # ✅ Check for duplicate before inserting
+            loop = asyncio.get_event_loop()
+
+            # ✅ 1. Insert (or upsert) into startups table
             try:
-                query = f"""
-                SELECT id, file_name, company_name
-                FROM `{self.dataset_name}.{self.doc_analysis_table}`
-                WHERE LOWER(company_name) = LOWER(@company_name)
-                AND file_name = @file_name
-                LIMIT 1
+                # Inside _store_in_bigquery
+                pitch_deck_url = structured_data.get("pitch_deck_url")  # should be set before calling this method
+                raw_data_str = self._safe_json_dumps(vision_result)
+
+                startup_query = f"""
+                MERGE `{self.dataset_name}.startups` T
+                USING (SELECT @company_name AS company_name, @industry AS industry, @founding_year AS founded_year) S
+                ON LOWER(T.name) = LOWER(S.company_name)
+                WHEN MATCHED THEN
+                UPDATE SET 
+                    T.industry = S.industry, 
+                    T.founded_year = S.founded_year, 
+                    T.updated_at = CURRENT_TIMESTAMP(),
+                    T.raw_data = @raw_data,
+                    T.pitch_deck_url = @pitch_deck_url
+                WHEN NOT MATCHED THEN
+                INSERT (id, name, industry, founded_year, created_at, updated_at, raw_data, pitch_deck_url)
+                VALUES (
+                    CAST(FARM_FINGERPRINT(S.company_name) AS INT64),
+                    S.company_name, 
+                    S.industry, 
+                    S.founded_year, 
+                    CURRENT_TIMESTAMP(),
+                    CURRENT_TIMESTAMP(),
+                    @raw_data,
+                    @pitch_deck_url
+                )
                 """
-                job_config = bigquery.QueryJobConfig(
+
+                startup_job_config = bigquery.QueryJobConfig(
                     query_parameters=[
                         bigquery.ScalarQueryParameter("company_name", "STRING", safe_row["company_name"]),
-                        bigquery.ScalarQueryParameter("file_name", "STRING", safe_row["file_name"]),
+                        bigquery.ScalarQueryParameter("industry", "STRING", safe_row["industry"]),
+                        bigquery.ScalarQueryParameter("founding_year", "INT64", safe_row["founding_year"]),
+                        bigquery.ScalarQueryParameter("raw_data", "STRING", raw_data_str),
+                        bigquery.ScalarQueryParameter("pitch_deck_url", "STRING", pitch_deck_url)
                     ]
                 )
-                loop = asyncio.get_event_loop()
-                query_job = await loop.run_in_executor(
-                    None, lambda: self.client.query(query, job_config=job_config).result()
+
+
+                await loop.run_in_executor(
+                    None, lambda: self.client.query(startup_query, job_config=startup_job_config).result()
                 )
-                existing = [dict(row.items()) for row in query_job]
-                if existing:
-                    logger.info(
-                        f"Duplicate detected: '{safe_row['company_name']}' "
-                        f"from file '{safe_row['file_name']}' already exists with id {existing[0]['id']}"
-                    )
-                    return  # ❌ Skip insertion
-            except Exception as dup_check_error:
-                logger.error(f"Duplicate check failed, continuing anyway: {str(dup_check_error)}")
 
-            # Ensure table exists
-            try:
-                self._ensure_doc_analysis_table_exists()
-            except Exception as table_error:
-                logger.error(f"Error ensuring table exists: {str(table_error)}")
+                # Fetch the startup_id (just inserted or existing)
+                get_startup_query = f"""
+                SELECT id FROM `{self.dataset_name}.startups`
+                WHERE LOWER(name) = LOWER(@company_name)
+                LIMIT 1
+                """
+                get_startup_job_config = bigquery.QueryJobConfig(
+                    query_parameters=[
+                        bigquery.ScalarQueryParameter("company_name", "STRING", safe_row["company_name"]),
+                    ]
+                )
+                startup_result = await loop.run_in_executor(
+                    None, lambda: self.client.query(get_startup_query, job_config=get_startup_job_config).result()
+                )
+                startup_rows = [dict(row.items()) for row in startup_result]
+                startup_id = startup_rows[0]["id"] if startup_rows else None
 
-            # Insert into BigQuery
+            except Exception as startup_error:
+                logger.error(f"Startup insert/upsert failed: {str(startup_error)}")
+                startup_id = None
+
+            # ✅ 2. Insert into document_analysis with startup_id
             try:
                 table_ref = self.client.dataset(self.dataset_name).table(self.doc_analysis_table)
                 table = await loop.run_in_executor(None, lambda: self.client.get_table(table_ref))
 
                 row_tuple = (
-                    safe_row["id"],
+                    str(int(analysis_timestamp.timestamp() * 1000000)),  # id
                     safe_row["file_name"],
                     None,  # file_type
                     analysis_timestamp,
-                    safe_row["raw_data"],
+                    raw_data_str,
                     safe_row["company_name"],
                     safe_row["industry"],
                     safe_row["founding_year"],
@@ -563,7 +595,7 @@ Return only this JSON format:
                     safe_row["revenue_model"],
                     safe_row["funding_status"],
                     safe_row["team_size"],
-                    None,  # startup_id
+                    startup_id,  # ✅ foreign key reference
                     safe_row["processing_status"],
                     safe_row["error_message"],
                 )
@@ -574,13 +606,14 @@ Return only this JSON format:
                 if errors:
                     logger.error(f"BigQuery insertion errors: {errors}")
                 else:
-                    logger.info(f"Inserted new document for company '{safe_row['company_name']}'")
+                    logger.info(f"Inserted document for '{safe_row['company_name']}' linked to startup {startup_id}")
 
             except Exception as bq_error:
                 logger.error(f"BigQuery insert failed: {str(bq_error)}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error in BigQuery storage task: {str(e)}", exc_info=True)
+
         
     def _ensure_doc_analysis_table_exists(self):
         """Create the document analysis table if it doesn't exist"""
