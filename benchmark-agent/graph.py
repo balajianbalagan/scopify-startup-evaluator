@@ -4,7 +4,7 @@ from typing import Any, AsyncIterator, Dict
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph
 
-from classes.state import InputState
+from classes.state import InputState, ResearchState
 from nodes import GroundingNode
 from nodes.briefing import Briefing
 from nodes.collector import Collector
@@ -77,7 +77,7 @@ class Graph:
 
     def _build_workflow(self):
         """Configure the state graph workflow"""
-        self.workflow = StateGraph(InputState)
+        self.workflow = StateGraph(ResearchState)
 
         # Add nodes with their respective processing functions
         self.workflow.add_node("grounding", self.ground.run)
@@ -103,11 +103,11 @@ class Graph:
         self.workflow.add_node("briefing", self.briefing.run)
         self.workflow.add_node("editor", self.editor.run)
 
-        # Configure simple sequential workflow for benchmark analysis
+        # Configure workflow for benchmark analysis - back to sequential to avoid LangGraph concurrent update errors
         self.workflow.set_entry_point("collector")
         self.workflow.set_finish_point("editor")
 
-        # Run analysts sequentially to avoid state conflicts
+        # Run analysts sequentially to avoid concurrent state updates (LangGraph limitation)
         self.workflow.add_edge("collector", "companies_products_analyst")
         self.workflow.add_edge("companies_products_analyst", "consumer_brands_analyst")
         self.workflow.add_edge("consumer_brands_analyst", "countries_regions_analyst")
@@ -121,33 +121,6 @@ class Graph:
         self.workflow.add_edge("enricher", "briefing")
         self.workflow.add_edge("briefing", "editor")
 
-    async def run(self, thread: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
-        """Execute the research workflow"""
-        compiled_graph = self.workflow.compile()
-        
-        async for state in compiled_graph.astream(
-            self.input_state,
-            thread
-        ):
-            if self.websocket_manager and self.job_id:
-                await self._handle_ws_update(state)
-            yield state
-
-    async def _handle_ws_update(self, state: Dict[str, Any]):
-        """Handle WebSocket updates based on state changes"""
-        update = {
-            "type": "state_update",
-            "data": {
-                "current_node": state.get("current_node", "unknown"),
-                "progress": state.get("progress", 0),
-                "keys": list(state.keys())
-            }
-        }
-        await self.websocket_manager.broadcast_to_job(
-            self.job_id,
-            update
-        )
-    
     def compile(self):
-        graph = self.workflow.compile()
-        return graph
+        """Compile the workflow for execution"""
+        return self.workflow.compile()

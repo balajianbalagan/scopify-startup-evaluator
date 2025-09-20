@@ -205,6 +205,11 @@ class Editor:
         
         references = state.get('references', [])
         reference_text = ""
+
+        # Debug: Log state keys and reference data
+        logger.info(f"Editor state keys: {list(state.keys())}")
+        logger.info(f"References from state: {references}")
+
         if references:
             logger.info(f"Found {len(references)} references to add during compilation")
             

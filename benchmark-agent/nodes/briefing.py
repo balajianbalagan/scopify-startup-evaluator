@@ -441,8 +441,8 @@ Analyze the following documents and extract key information. Provide only the br
 
         # Process briefings in parallel with rate limiting
         if briefing_tasks:
-            # Rate limiting semaphore for LLM API
-            briefing_semaphore = asyncio.Semaphore(2)  # Limit to 2 concurrent briefings
+            # Rate limiting semaphore for LLM API (optimized for 1vCPU/1GB)
+            briefing_semaphore = asyncio.Semaphore(1)  # Limit to 1 concurrent briefing for memory conservation
             
             async def process_briefing(task: Dict[str, Any]) -> Dict[str, Any]:
                 """Process a single briefing with rate limiting."""

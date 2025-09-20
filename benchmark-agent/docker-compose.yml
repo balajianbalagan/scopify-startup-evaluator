@@ -1,0 +1,14 @@
+services:
+  benchmark-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8080
+    volumes:
+      - ./pdfs:/app/pdfs
+    env_file:
+      - .env

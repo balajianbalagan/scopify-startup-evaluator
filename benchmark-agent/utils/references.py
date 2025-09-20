@@ -127,8 +127,12 @@ def process_references_from_search_results(state: Dict[str, Any]) -> Tuple[List[
     """Process references from search results and return top references, titles, and info."""
     all_top_references = []
     
-    # Collect references with scores from all data types
-    data_types = ['curated_company_data', 'curated_industry_data', 'curated_financial_data', 'curated_news_data']
+    # Collect references with scores from all data types (including new benchmark analysis)
+    data_types = [
+        'curated_company_data', 'curated_industry_data', 'curated_financial_data', 'curated_news_data',
+        'curated_companies_products_data', 'curated_consumer_brands_data', 'curated_countries_regions_data',
+        'curated_digital_trends_data', 'curated_industries_markets_data', 'curated_politics_society_data'
+    ]
     
     # Log the start of reference processing
     logger.info("Starting to process references from search results")
@@ -143,7 +147,7 @@ def process_references_from_search_results(state: Dict[str, Any]) -> Tuple[List[
                     else:
                         # Fallback to raw score if available
                         score = float(doc.get('score', 0))
-                    
+
                     logger.info(f"Found reference in {data_type}: URL={url}, Score={score:.4f}")
                     all_top_references.append((url, score))
                 except (KeyError, ValueError, TypeError) as e:
@@ -187,7 +191,7 @@ def process_references_from_search_results(state: Dict[str, Any]) -> Tuple[List[
             title = None
             website_name = None
             
-            # Look for the document info in all data types
+            # Look for the document info in all data types (including benchmark analysis)
             for data_type in data_types:
                 if not title and (curated_data := state.get(data_type, {})):
                     for doc in curated_data.values():
@@ -227,12 +231,12 @@ def process_references_from_search_results(state: Dict[str, Any]) -> Tuple[List[
     for i, (url, score) in enumerate(unique_references):
         logger.info(f"{i+1}. Score: {score:.4f} - URL: {url}")
     
-    # Take exactly 10 unique references (or all if less than 10)
-    top_references = unique_references[:10]
+    # Take all unique references (no artificial limit)
+    top_references = unique_references
     top_reference_urls = [url for url, _ in top_references]
-    
-    # Log final top 10 references
-    logger.info(f"Final top {len(top_reference_urls)} references selected:")
+
+    # Log final references
+    logger.info(f"Final {len(top_reference_urls)} references selected:")
     for i, url in enumerate(top_reference_urls):
         score = next((s for u, s in unique_references if u == url), 0)
         logger.info(f"{i+1}. Score: {score:.4f} - URL: {url}")

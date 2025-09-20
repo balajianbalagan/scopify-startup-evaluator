@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Curator:
     def __init__(self) -> None:
-        self.relevance_threshold = 0.4  # Fixed initialization of class attribute
-        logger.info("Curator initialized with relevance threshold: {relevance_threshhold}")
+        self.relevance_threshold = 0.3
 
     async def evaluate_documents(self, state: ResearchState, docs: list, context: Dict[str, str]) -> list:
         """Evaluate documents based on Tavily's scoring."""
@@ -184,7 +183,14 @@ class Curator:
             # Filter and sort by Tavily score
             relevant_docs = {url: doc for url, doc in zip(urls, evaluated_docs)}
             sorted_items = sorted(relevant_docs.items(), key=lambda item: item[1]['evaluation']['overall_score'], reverse=True)
-            
+
+            # Debug: Log scores for this category
+            logger.info(f"Document scores for {doc_type}:")
+            for i, (url, doc) in enumerate(sorted_items[:5]):  # Log top 5
+                score = doc['evaluation']['overall_score']
+                title = doc.get('title', 'No title')[:50]
+                logger.info(f"  {i+1}. Score: {score:.4f} - {title} - {url[:60]}...")
+
             # Limit to top 30 documents per category
             if len(sorted_items) > 30:
                 sorted_items = sorted_items[:30]
@@ -205,9 +211,24 @@ class Curator:
             # Store curated documents in state
             state[f'curated_{data_field}'] = relevant_docs
             
+        # Debug: Log state keys before reference processing
+        logger.info(f"State keys before reference processing: {list(state.keys())}")
+        curated_keys = [k for k in state.keys() if k.startswith('curated_')]
+        logger.info(f"Curated data keys found: {curated_keys}")
+        for key in curated_keys:
+            data = state.get(key, {})
+            logger.info(f"{key}: {len(data)} documents")
+
         # Process references using the references module
         top_reference_urls, reference_titles, reference_info = process_references_from_search_results(state)
         logger.info(f"Selected top {len(top_reference_urls)} references for the report")
+
+        # Debug: Log reference details
+        if top_reference_urls:
+            logger.info(f"Reference URLs: {top_reference_urls}")
+            logger.info(f"Reference titles: {reference_titles}")
+        else:
+            logger.error("NO REFERENCES FOUND! This indicates a problem with reference processing")
         
         # Update state with references and their titles
         messages = state.get('messages', [])

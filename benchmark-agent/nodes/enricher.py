@@ -16,7 +16,7 @@ class Enricher:
         if not tavily_key:
             raise ValueError("TAVILY_API_KEY environment variable is not set")
         self.tavily_client = AsyncTavilyClient(api_key=tavily_key)
-        self.batch_size = 20
+        self.batch_size = 10  # Reduced for 1vCPU/1GB memory constraints
 
     async def fetch_single_content(self, url: str, websocket_manager=None, job_id=None, category=None) -> Dict[str, str]:
         """Fetch raw content for a single URL."""
@@ -75,8 +75,8 @@ class Enricher:
         # Create batches
         batches = [urls[i:i + self.batch_size] for i in range(0, len(urls), self.batch_size)]
         
-        # Process batches in parallel with rate limiting
-        semaphore = asyncio.Semaphore(3)  # Limit concurrent batches to 3
+        # Process batches in parallel with rate limiting (optimized for 1vCPU/1GB)
+        semaphore = asyncio.Semaphore(1)  # Limit concurrent batches to 1 for memory conservation
         
         async def process_batch(batch_num: int, batch_urls: List[str]) -> Dict[str, str]:
             async with semaphore:
@@ -135,12 +135,18 @@ class Enricher:
 
         msg = [f"📚 Enriching curated data for {company}:"]
 
-        # Process each type of curated data
+        # Process each type of curated data (including new benchmark analysis)
         data_types = {
             'financial_data': ('💰 Financial', 'financial'),
             'news_data': ('📰 News', 'news'),
             'industry_data': ('🏭 Industry', 'industry'),
-            'company_data': ('🏢 Company', 'company')
+            'company_data': ('🏢 Company', 'company'),
+            'companies_products_data': ('🏆 Companies & Products', 'companies_products'),
+            'consumer_brands_data': ('👥 Consumer & Brands', 'consumer_brands'),
+            'countries_regions_data': ('🌍 Countries & Regions', 'countries_regions'),
+            'digital_trends_data': ('💻 Digital & Trends', 'digital_trends'),
+            'industries_markets_data': ('📊 Industries & Markets', 'industries_markets'),
+            'politics_society_data': ('🏛️ Politics & Society', 'politics_society')
         }
 
         # Create tasks for parallel processing

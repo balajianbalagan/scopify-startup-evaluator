@@ -22,11 +22,14 @@ env_path = Path(__file__).parent / '.env'
 if env_path.exists():
     load_dotenv(dotenv_path=env_path, override=True)
 
-# Configure logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-logger.addHandler(console_handler)
+# Configure logging for production
+logging.basicConfig(
+    level=logging.WARNING,  # Only show warnings and errors in production
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Tavily Company Research API")
 
@@ -187,7 +190,7 @@ async def process_research(job_id: str, data: ResearchRequest):
         industry = industry or data.industry or "Technology"
         hq_location = hq_location or data.hq_location or "Global"
 
-        logger.info(f"Extracted company info: {company_name}, {industry}, {hq_location}")
+        logger.info(f"Starting analysis for {company_name}")
 
         await update_progress(job_id, "setup", 10, f"Initializing analysis for {company_name}")
 
@@ -217,34 +220,57 @@ async def process_research(job_id: str, data: ResearchRequest):
         }
 
         try:
-            async for s in graph.run(thread={}):
-                if s is None:
-                    logger.error("Graph returned None state!")
-                    continue
-                state.update(s)
+            # Execute the complete workflow
+            compiled_graph = graph.compile()
+            final_state = await compiled_graph.ainvoke(graph.input_state)
 
-                # Track progress based on completed steps
-                for step_name, (progress, message) in step_mapping.items():
-                    if step_name in s and step_name not in job_status[job_id]["steps_completed"]:
-                        await update_progress(job_id, step_name, progress, message)
-                        break
+            # Update our state with the complete final state
+            state.update(final_state)
 
-                logger.info(f"Updated state with keys: {list(s.keys()) if s else 'None'}")
+            # Mark all steps as completed
+            for step_name, (progress, message) in step_mapping.items():
+                if step_name not in job_status[job_id]["steps_completed"]:
+                    await update_progress(job_id, step_name, progress, message)
+
         except Exception as e:
             logger.error(f"Error during graph execution: {str(e)}", exc_info=True)
             raise
 
-        # Look for the compiled report in either location.
-        logger.info(f"Final state keys: {list(state.keys())}")
+        # Extract the final report and references
         report_content = state.get('report') or (state.get('editor') or {}).get('report')
+        references = state.get('references', [])
+        reference_info = state.get('reference_info', {})
+
         if report_content:
-            logger.info(f"Found report in final state (length: {len(report_content)})")
+            # Check if references section exists but is empty, or missing entirely
+            references_missing = "## References" not in report_content
+            references_empty = "## References" in report_content and report_content.split("## References")[1].strip() == ""
+
+            if (references_missing or references_empty) and references:
+                logger.warning("References section missing - adding references to report")
+                from utils.references import format_references_section
+                reference_titles = state.get('reference_titles', {})
+                reference_text = format_references_section(references, reference_info, reference_titles)
+                if reference_text:
+                    if references_empty:
+                        # Replace empty references section
+                        parts = report_content.split("## References")
+                        report_content = parts[0] + reference_text
+                    else:
+                        # Add references section
+                        report_content = f"{report_content}\n\n{reference_text}"
+                    logger.info(f"Added references to report. New length: {len(report_content)}")
+            elif not references:
+                logger.error("No references found in state! This indicates the curator/reference processing failed.")
+
             await update_progress(job_id, "completed", 100, "Benchmark analysis completed successfully")
 
             job_status[job_id].update({
                 "status": "completed",
                 "report": report_content,
                 "company": company_name,
+                "references": references,
+                "reference_info": reference_info,
                 "progress_percentage": 100,
                 "current_step": "completed",
                 "last_update": datetime.now().isoformat()
@@ -256,15 +282,23 @@ async def process_research(job_id: str, data: ResearchRequest):
                 result={
                     "report": report_content,
                     "company": company_name,
+                    "references": references,
+                    "reference_info": reference_info,
                     "progress": 100,
                     "current_step": "completed"
                 }
             )
-        else:
-            logger.error(f"Research completed without finding report. State keys: {list(state.keys())}")
-            logger.error(f"Editor state: {state.get('editor', {})}")
 
-            # Check if there was a specific error in the state
+            # Return final state for testing purposes
+            return {
+                "report": report_content,
+                "references": references,
+                "reference_info": reference_info,
+                "company": company_name,
+                "status": "completed"
+            }
+        else:
+            # No report was generated
             error_message = "No report found in final state"
             if error := state.get('error'):
                 error_message = f"Error: {error}"
@@ -283,6 +317,15 @@ async def process_research(job_id: str, data: ResearchRequest):
                 error=error_message
             )
 
+            # Return error state for testing purposes
+            return {
+                "status": "failed",
+                "error": error_message,
+                "report": "",
+                "references": [],
+                "reference_info": {}
+            }
+
     except Exception as e:
         logger.error(f"Research failed: {str(e)}")
         job_status[job_id].update({
@@ -296,6 +339,15 @@ async def process_research(job_id: str, data: ResearchRequest):
             message=f"Research failed: {str(e)}",
             error=str(e)
         )
+
+        # Return exception state for testing purposes
+        return {
+            "status": "failed",
+            "error": str(e),
+            "report": "",
+            "references": [],
+            "reference_info": {}
+        }
 @app.get("/")
 async def ping():
     return {"message": "Alive"}
@@ -494,7 +546,13 @@ async def get_research_report(job_id: str):
     if job_id in job_status:
         result = job_status[job_id]
         if report := result.get("report"):
-            return {"report": report, "company": result.get("company"), "status": result.get("status")}
+            return {
+                "report": report,
+                "company": result.get("company"),
+                "status": result.get("status"),
+                "references": result.get("references", []),
+                "reference_info": result.get("reference_info", {})
+            }
     raise HTTPException(status_code=404, detail="Report not found")
 
 @app.post("/generate-pdf")
