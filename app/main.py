@@ -70,8 +70,7 @@ def seed_mock_data(db: Session, file_path: str):
             dto = CompanyInformationCreate(
                 company_name=c["company_name"],
                 ai_generated_info=c.get("ai_generated_info"),
-                search_query=c.get("search_query"),
-                search_timestamp=ts,
+                search_query=c.get("search_query")
             )
             crud.company.create_company_search(
                 db, dto, requested_by_id=c["requested_by_id"]

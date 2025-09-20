@@ -1,3 +1,5 @@
+from app.api.constants.flag_constants import FRIENDLY_NAMES
+from app.schemas.flag import CompanyFlag
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.params import Query
 from sqlalchemy.orm import Session
@@ -17,6 +19,62 @@ from app.db.models.user import User
 from app.services.google_ai_service import google_ai_service
 
 router = APIRouter(prefix="/company", tags=["company"])
+
+
+def _raise_flags_from_result(company_id: int, result: dict, db_session):
+    flags = []
+    
+    def humanize_key(path: str) -> str:
+        """Convert dotted path into human-readable label."""
+        if path in FRIENDLY_NAMES:
+            return FRIENDLY_NAMES[path]
+        # fallback: split on . and _ and prettify
+        pretty = path.split(".")[-1].replace("_", " ")
+        return pretty.capitalize()
+
+
+    # --- Check for nulls (except risk_assessment) ---
+    def check_nulls(data, parent_key=""):
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if k == "risk_assessment":
+                    continue  # handled separately
+                if v is None:
+                    flags.append(
+                        CompanyFlag(
+                            company_id=company_id,
+                            flag_type="data_missing",
+                            risk_level="medium",
+                            flag_description=f"Missing value for {humanize_key(parent_key + '.' + k if parent_key else k)}",
+                        )
+                    )
+
+                else:
+                    check_nulls(v, parent_key + "." + k if parent_key else k)
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                check_nulls(item, f"{parent_key}[{i}]")
+
+    check_nulls(result)
+
+    # --- Check risk_assessment section ---
+    risks = result.get("risk_assessment", {}).get("business_risks", {})
+    for risk_name, risk_data in risks.items():
+        if risk_data.get("level"):  # if level is set, flag it
+            flags.append(
+                CompanyFlag(
+                    company_id=company_id,
+                    flag_type="risk",
+                    risk_level=risk_data.get("level", "low"),
+                    flag_description=f"Risk identified: {risk_name}",
+                )
+            )
+
+    # --- Save flags to DB ---
+    db_session.add_all(flags)
+    db_session.commit()
+
+    return flags    
 
 @router.post("/", response_model=CompanyInformationRead, status_code=status.HTTP_201_CREATED)
 def create_company_info(
@@ -44,6 +102,7 @@ def create_company_info(
             company_in,
             requested_by_id=current_user.id
         )
+        _raise_flags_from_result(created.id, created.ai_generated_info or {}, db)
         return created
     except Exception as e:
         raise HTTPException(

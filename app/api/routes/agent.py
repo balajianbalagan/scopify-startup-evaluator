@@ -1,3 +1,4 @@
+from app.schemas.flag import CompanyFlag
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Body
 from typing import Optional, Any, Dict
 import json
@@ -20,6 +21,7 @@ def _parse_json_field(field_value: Optional[str], field_name: str) -> Optional[D
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"{field_name} must be a valid JSON string"
         )
+
 
 @router.post("/run-session", summary="Run agent session with a PDF")
 async def run_session_with_pdf(
@@ -73,6 +75,9 @@ async def run_session_with_pdf(
             state_delta=state_delta_obj,
             session_bootstrap_payload=bootstrap_obj,
         )
+        
+        ## find empty fields and raise red flag
+        # _raise_flags_from_result(result=result, company_id=int(user_id), db_session=agent_service.db_session)
 
         elapsed = time.perf_counter() - start_ts
         logger.info(
