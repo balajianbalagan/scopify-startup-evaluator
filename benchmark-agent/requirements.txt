@@ -1,0 +1,11 @@
+certifi
+fastapi
+langchain_core
+langgraph
+protobuf
+pydantic
+reportlab
+tavily_python
+uvicorn[standard]
+websockets
+google-generativeai
