@@ -1,6 +1,8 @@
 import base64
 import logging
 from typing import Any, Dict, Optional
+from app.db.models.company import CompanyInformation
+from sqlalchemy.orm import Session
 
 import httpx
 from app.core.config import settings
@@ -10,7 +12,7 @@ import re
 logger = logging.getLogger(__name__)
 
 class AgentService:
-    def __init__(self, base_url: Optional[str] = None, timeout: float = 60.0):
+    def __init__(self, base_url: Optional[str] = None, timeout: float = 120.0):
         # Fallback to the provided default if not in settings
         self.base_url = (
             base_url
@@ -156,10 +158,12 @@ class AgentService:
                     return None
             return None
 
-    async def invoke_benchmark_research(self, payload: dict) -> dict:
+    async def invoke_benchmark_research(self, payload: dict, company_id: int, db: Session) -> dict:
         """
         Invokes the /research endpoint on the benchmark agent.
-        The payload should be a dict matching the expected API schema.
+        After success, updates the CompanyInformation record:
+        - Sets benchmark_status to 'STARTED'
+        - Sets benchmark_job_id to the returned job_id
         """
         url = "https://benchmark-agent-634194827064.us-central1.run.app/research"
         logger.info("Invoking benchmark research: url=%s", url)
@@ -173,14 +177,34 @@ class AgentService:
                 }
             )
         logger.debug("POST %s -> %s %s", url, resp.status_code, resp.reason_phrase)
-        if resp.is_success:
-            return resp.json()
-        logger.error("Benchmark research failed: %s", resp.text)
-        raise RuntimeError(f"Benchmark research invocation failed: {resp.text}")
+        if not resp.is_success:
+            logger.error("Benchmark research failed: %s", resp.text)
+            raise RuntimeError(f"Benchmark research invocation failed: {resp.text}")
 
-    async def get_benchmark_research_progress(self, research_id: str) -> dict:
+        result = resp.json()
+        job_id = result.get("job_id")
+        if not job_id:
+            logger.error("No job_id found in benchmark research response")
+            raise RuntimeError("No job_id found in benchmark research response")
+
+        db_company = db.query(CompanyInformation).filter(CompanyInformation.id == company_id).first()
+        if db_company:
+            db_company.benchmark_status = "STARTED"
+            db_company.benchmark_job_id = job_id
+            db.commit()
+            db.refresh(db_company)
+            logger.info("Updated CompanyInformation id=%s: benchmark_status=STARTED, benchmark_job_id=%s", company_id, job_id)
+        else:
+            logger.warning("CompanyInformation id=%s not found for benchmark update", company_id)
+
+        return result
+
+    async def get_benchmark_research_progress(self, research_id: str, company_id: int, db: Session) -> dict:
         """
         Invokes the /research/{research_id}/progress endpoint on the benchmark agent.
+        Updates the CompanyInformation record's benchmark_status based on progress_percentage:
+        - 'IN_PROGRESS' if 0 < progress < 100
+        - 'COMPLETE' if progress == 100
         Returns the progress status as a dict.
         """
         url = f"https://benchmark-agent-634194827064.us-central1.run.app/research/{research_id}/progress"
@@ -193,10 +217,31 @@ class AgentService:
                 }
             )
         logger.debug("GET %s -> %s %s", url, resp.status_code, resp.reason_phrase)
-        if resp.is_success:
-            return resp.json()
-        logger.error("Benchmark research progress failed: %s", resp.text)
-        raise RuntimeError(f"Benchmark research progress invocation failed: {resp.text}")
+        if not resp.is_success:
+            logger.error("Benchmark research progress failed: %s", resp.text)
+            raise RuntimeError(f"Benchmark research progress invocation failed: {resp.text}")
+
+        result = resp.json()
+        progress = result.get("progress_percentage")
+        new_status = None
+        if isinstance(progress, (int, float)):
+            if progress == 100:
+                new_status = "COMPLETE"
+            elif progress > 0:
+                new_status = "IN_PROGRESS"
+
+        # Update CompanyInformation in DB
+        from app.db.models.company import CompanyInformation
+        db_company = db.query(CompanyInformation).filter(CompanyInformation.id == company_id).first()
+        if db_company and new_status:
+            db_company.benchmark_status = new_status
+            db.commit()
+            db.refresh(db_company)
+            logger.info("Updated CompanyInformation id=%s: benchmark_status=%s", company_id, new_status)
+        elif not db_company:
+            logger.warning("CompanyInformation id=%s not found for benchmark progress update", company_id)
+
+        return result
 
     async def get_benchmark_research_report(self, research_id: str) -> dict:
         """

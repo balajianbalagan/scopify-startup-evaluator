@@ -99,18 +99,23 @@ def get_company_search_by_name(
 def update_company_search(
     db: Session, 
     search_id: int, 
-    ai_generated_info: dict
+    update_data: dict
 ) -> Optional[CompanyInformation]:
-    """Update company search with AI generated information."""
+    """
+    Update company search with provided data (can include any updatable columns).
+    """
     db_company_info = get_company_search(db, search_id)
     if not db_company_info:
         return None
-    
-    db_company_info.ai_generated_info = ai_generated_info
+
+    # Update all fields present in update_data that exist on the model
+    for key, value in update_data.items():
+        if hasattr(db_company_info, key):
+            setattr(db_company_info, key, value)
+
     db.commit()
     db.refresh(db_company_info)
     return db_company_info
-
 
 def delete_company_search(db: Session, search_id: int) -> bool:
     """Delete a company search record."""

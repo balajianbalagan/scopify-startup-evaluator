@@ -1,9 +1,10 @@
 from app.schemas.flag import CompanyFlag
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Body
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Body, Query
 from typing import Optional, Any, Dict
+from sqlalchemy.orm import Session
 import json
 
-from app.api.deps import get_current_active_user  # or require_partner_or_admin if you want stricter access
+from app.api.deps import get_current_active_user, get_db  # or require_partner_or_admin if you want stricter access
 from app.services.agent_service import AgentService
 import logging
 import time
@@ -101,14 +102,16 @@ async def run_session_with_pdf(
 @router.post("/benchmark/research", summary="Invoke benchmark research")
 async def benchmark_research(
     payload: dict = Body(...),
+    company_id: int = Query(..., description="CompanyInformation ID to update"),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
 ):
     """
-    Invoke the /research endpoint on the benchmark agent.
+    Invoke the /research endpoint on the benchmark agent and update CompanyInformation.
     """
     try:
         agent_service = AgentService()
-        result = await agent_service.invoke_benchmark_research(payload)
+        result = await agent_service.invoke_benchmark_research(payload, company_id, db)
         return result
     except Exception as e:
         raise HTTPException(
@@ -119,14 +122,16 @@ async def benchmark_research(
 @router.get("/benchmark/research/{research_id}/progress", summary="Get benchmark research progress")
 async def benchmark_research_progress(
     research_id: str,
+    company_id: int = Query(..., description="CompanyInformation ID to update"),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
 ):
     """
-    Get progress for a benchmark research job.
+    Get progress for a benchmark research job and update CompanyInformation.
     """
     try:
         agent_service = AgentService()
-        result = await agent_service.get_benchmark_research_progress(research_id)
+        result = await agent_service.get_benchmark_research_progress(research_id, company_id, db)
         return result
     except Exception as e:
         raise HTTPException(

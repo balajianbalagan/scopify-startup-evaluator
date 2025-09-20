@@ -1,6 +1,6 @@
 from app.api.constants.flag_constants import FRIENDLY_NAMES
 from app.schemas.flag import CompanyFlag
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -192,6 +192,38 @@ async def search_company_information(
             detail=f"An error occurred while searching for company information: {str(e)}"
         )
 
+@router.put("/{company_id}", response_model=CompanyInformationRead)
+def update_company_info(
+    company_id: int,
+    update_data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_partner_or_admin)
+):
+    """
+    Update an existing CompanyInformation record.
+    Partners and Admins only.
+    """
+    db_company = company_crud.get_company_search(db, company_id)
+    if not db_company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company information not found"
+        )
+
+    # Only allow update if user is admin or owner
+    if current_user.role.value != "admin" and db_company.requested_by_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You can only update your own company information."
+        )
+
+    updated_company = company_crud.update_company_search(db, company_id, update_data)
+    if not updated_company:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update company information"
+        )
+    return updated_company
 
 @router.get("/searches/my", response_model=List[CompanyInformationRead])
 def get_my_company_searches(

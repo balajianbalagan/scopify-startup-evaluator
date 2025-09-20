@@ -22,6 +22,8 @@ class CompanyInformation(Base):
     benchmark_info = Column(Text, nullable=True)
     dealnote_info = Column(Text, nullable=True)
     deal_notes_status = Column(Text, nullable=True) 
+    benchmark_job_id = Column(Text, nullable=True)
+    deal_notes_job_id = Column(Text, nullable=True) 
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(

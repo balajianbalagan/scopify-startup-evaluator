@@ -17,6 +17,8 @@ class CompanyInformationBase(BaseModel):
     benchmark_info: Optional[str] = None
     dealnote_info: Optional[str] = None
     deal_notes_status: Optional[str] = None
+    benchmark_job_id: Optional[str] = None
+    deal_notes_job_id: Optional[str] = None  
 
 
 class CompanyInformationCreate(CompanyInformationBase):
