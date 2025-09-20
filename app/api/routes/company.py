@@ -1,3 +1,4 @@
+from app.api.constants.flag_constants import FRIENDLY_NAMES
 from app.schemas.flag import CompanyFlag
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.params import Query
@@ -22,6 +23,15 @@ router = APIRouter(prefix="/company", tags=["company"])
 
 def _raise_flags_from_result(company_id: int, result: dict, db_session):
     flags = []
+    
+    def humanize_key(path: str) -> str:
+        """Convert dotted path into human-readable label."""
+        if path in FRIENDLY_NAMES:
+            return FRIENDLY_NAMES[path]
+        # fallback: split on . and _ and prettify
+        pretty = path.split(".")[-1].replace("_", " ")
+        return pretty.capitalize()
+
 
     # --- Check for nulls (except risk_assessment) ---
     def check_nulls(data, parent_key=""):
@@ -35,9 +45,10 @@ def _raise_flags_from_result(company_id: int, result: dict, db_session):
                             company_id=company_id,
                             flag_type="data_missing",
                             risk_level="medium",
-                            flag_description=f"Missing value for {parent_key + '.' + k}" if parent_key else f"Missing value for {k}",
+                            flag_description=f"Missing value for {humanize_key(parent_key + '.' + k if parent_key else k)}",
                         )
                     )
+
                 else:
                     check_nulls(v, parent_key + "." + k if parent_key else k)
         elif isinstance(data, list):
