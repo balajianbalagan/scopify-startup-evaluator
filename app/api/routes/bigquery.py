@@ -1,13 +1,10 @@
 from typing import List, Dict, Any, Optional
 import logging
-import json
-import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 import tempfile
 import os
 from app.services.bigquery_service import BigQueryService
-from app.services.vision_service import VisionService
-from app.schemas.startup import StartupCreate, StartupEvaluationCreate
+from app.schemas.startup import StartupCreate
 from app.db.models.startup import StartupStatus
 from app.core.config import settings
 
@@ -119,7 +116,6 @@ async def process_document(file: UploadFile = File(...)):
 
         logger.info(f"Temporary file created: {temp_path} ({len(content)} bytes)")
 
-        vision_service = VisionService()
 
         # Always upload to GCS first to get the proper gcs_url
         from google.cloud import storage
@@ -142,30 +138,30 @@ async def process_document(file: UploadFile = File(...)):
             gcs_destination_uri = f"gs://{bucket_name}/vision_output/{file.filename}/"
             
             logger.info(f"Processing PDF from {gcs_url}, results to {gcs_destination_uri}")
-            result = await vision_service.process_pdf_gcs(gcs_url, gcs_destination_uri)
+            # result = await vision_service.process_pdf_gcs(gcs_url, gcs_destination_uri)
 
         else:
             # For images → process locally (but we already uploaded to GCS)
             logger.info("Detected image file. Using local Vision API OCR...")
-            result = await vision_service.process_document(temp_path)
+            # result = await vision_service.process_document(temp_path)
 
         # Process with Gemini and store in BigQuery asynchronously
-        bq_service = BigQueryService()
-        processed_result = await bq_service.process_and_store_document(
-            vision_result=result,
-            file_name=file.filename,
-            gcs_url=gcs_url  # Pass the actual GCS URL
-        )
+        # bq_service = BigQueryService()
+        # processed_result = await bq_service.process_and_store_document(
+        #     vision_result=result,
+        #     file_name=file.filename,
+        #     gcs_url=gcs_url  # Pass the actual GCS URL
+        # )
 
         # If we got basic error response from processing
-        if processed_result.get("error"):
-            logger.warning(f"Document processed with limited success: {processed_result['error']}")
+        # if processed_result.get("error"):
+        #     logger.warning(f"Document processed with limited success: {processed_result['error']}")
             # Still return the result - it will contain the raw vision data
-        else:
-            logger.info("Document processed successfully")
+        # else:
+        #     logger.info("Document processed successfully")
 
         # Return the processed result in any case
-        return processed_result
+        return {"pitch_deck_url": gcs_url, "message": "Document uploaded and processing initiated."}
 
     except Exception as e:
         logger.error(f"Error processing document: {str(e)}", exc_info=True)

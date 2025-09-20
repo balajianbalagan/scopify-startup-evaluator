@@ -1,0 +1,711 @@
+{
+    "named_entities": {
+        "organizations": {
+            "company": {
+                "legal_name": "Datastride Analytics",
+                "brand_names": [
+                    "Sia"
+                ],
+                "dba_names": [],
+                "parent_company": null,
+                "subsidiaries": [],
+                "website_url": "sianalytics.in",
+                "social_media_handles": {}
+            },
+            "competitors": [],
+            "customers": [
+                {
+                    "name": "Bosch",
+                    "type": "enterprise",
+                    "tier": "key"
+                },
+                {
+                    "name": "Abha Hospital (KSA)",
+                    "type": "enterprise",
+                    "tier": "key"
+                },
+                {
+                    "name": "IDBI Bank",
+                    "type": "enterprise",
+                    "tier": "key"
+                },
+                {
+                    "name": "Mercedes-Benz",
+                    "type": "enterprise",
+                    "tier": "key"
+                },
+                {
+                    "name": "Rice University",
+                    "type": "enterprise",
+                    "tier": "key"
+                }
+            ],
+            "partners": [
+                {
+                    "name": "Data Services",
+                    "type": "channel",
+                    "partnership_value": null
+                },
+                {
+                    "name": "Propelathon",
+                    "type": "channel",
+                    "partnership_value": null
+                },
+                {
+                    "name": "primeNumber",
+                    "type": "channel",
+                    "partnership_value": null
+                },
+                {
+                    "name": "Bosch",
+                    "type": "channel",
+                    "partnership_value": null
+                },
+                {
+                    "name": "RayRC",
+                    "type": "channel",
+                    "partnership_value": null
+                }
+            ],
+            "investors": []
+        },
+        "persons": {
+            "founders": [
+                {
+                    "full_name": "Divya Krishna R",
+                    "role": null,
+                    "email": null,
+                    "phone": null,
+                    "linkedin": null,
+                    "twitter": null,
+                    "commitment": "full_time",
+                    "equity_percentage": null
+                },
+                {
+                    "full_name": "Sumalata Kamat",
+                    "role": null,
+                    "email": null,
+                    "phone": null,
+                    "linkedin": null,
+                    "twitter": null,
+                    "commitment": "full_time",
+                    "equity_percentage": null
+                },
+                {
+                    "full_name": "Karthik. C",
+                    "role": null,
+                    "email": "karthik.c@datastride.ai",
+                    "phone": "+91 87625 25857",
+                    "linkedin": null,
+                    "twitter": null,
+                    "commitment": "full_time",
+                    "equity_percentage": null
+                }
+            ],
+            "team_members": [],
+            "advisors": [],
+            "board_members": []
+        },
+        "locations": {
+            "headquarters": {
+                "street_address": null,
+                "city": "Bengaluru",
+                "state_province": null,
+                "country": null,
+                "postal_code": null,
+                "timezone": null,
+                "coordinates": null
+            },
+            "offices": [],
+            "target_markets": []
+        },
+        "dates": {
+            "founding_date": null,
+            "incorporation_date": null,
+            "product_launch_date": "2024-01-01",
+            "revenue_start_date": null,
+            "profitability_date": null,
+            "funding_dates": [
+                {
+                    "round": "Seed stage",
+                    "date": null,
+                    "amount": 500000000.0
+                }
+            ],
+            "milestone_dates": []
+        },
+        "monetary_values": {
+            "revenue": null,
+            "costs": {
+                "cogs": null,
+                "opex": null,
+                "capex": null,
+                "monthly_burn": null,
+                "cac": null,
+                "cost_per_unit": null
+            },
+            "funding": {
+                "total_raised": 500000000.0,
+                "current_round_size": 500000000.0,
+                "pre_money_valuation": null,
+                "post_money_valuation": null,
+                "valuation_cap": null,
+                "discount_rate": null
+            },
+            "unit_economics": {
+                "ltv": 1000000.0,
+                "aov": null,
+                "acv": 225000.0,
+                "arpu": null,
+                "contribution_margin": null
+            }
+        },
+        "percentages": {
+            "growth_rates": {
+                "revenue_growth_mom": null,
+                "revenue_growth_qoq": null,
+                "revenue_growth_yoy": null,
+                "user_growth_mom": null,
+                "user_growth_yoy": null
+            },
+            "margins": {
+                "gross_margin": null,
+                "ebitda_margin": null,
+                "net_margin": null,
+                "contribution_margin": null
+            },
+            "efficiency_metrics": {
+                "burn_multiple": null,
+                "efficiency_score": null,
+                "rule_of_40": null,
+                "magic_number": null
+            },
+            "retention_metrics": {
+                "gross_retention": null,
+                "net_retention": null,
+                "logo_retention": null,
+                "churn_rate": null
+            },
+            "market_metrics": {
+                "market_share": null,
+                "win_rate": null,
+                "conversion_rate": null,
+                "penetration_rate": null
+            }
+        },
+        "products_services": [
+            {
+                "name": "Sia Agentic AI for Data Analytics",
+                "type": "saas",
+                "description": "Agentic AI for Data Analytics that drives value from data through conversation, bringing a full data team to everyone across the organization through a simple chat interface.",
+                "launch_date": "2024-01-01",
+                "pricing_model": "subscription",
+                "target_customer": "Medium to large enterprises",
+                "key_features": [
+                    "Feature readability",
+                    "AI Guidance",
+                    "Conversational AI",
+                    "Widgets for Quick analytics",
+                    "Calculator for instant data transformations",
+                    "Build and scale data pipelines",
+                    "Customize and import code",
+                    "Automated charts",
+                    "AI deep thinking",
+                    "Unified Data Integration"
+                ]
+            }
+        ],
+        "technologies": {
+            "core_tech": [
+                "Agentic AI"
+            ],
+            "programming_languages": [],
+            "frameworks": [],
+            "databases": [],
+            "infrastructure": [
+                "Cloud Storage",
+                "Amazon S3",
+                "Azure Data Storage",
+                "Google Cloud",
+                "FTP",
+                "SFTP",
+                "HTTP",
+                "OneLake",
+                "Snowflake",
+                "Databricks",
+                "Amazon RedShift",
+                "Azure Synapse"
+            ],
+            "third_party_services": [],
+            "ai_ml_capabilities": [
+                "Recommender Engine",
+                "Pattern discovery",
+                "Auto Visualizations",
+                "Rapid Deployment",
+                "Data quality Reports",
+                "No-code model building",
+                "Instant Insights",
+                "Develop Data Summaries",
+                "Build context of Data"
+            ],
+            "blockchain_tech": [],
+            "iot_devices": []
+        },
+        "intellectual_property": {
+            "patents": [],
+            "trademarks": [],
+            "copyrights": [],
+            "trade_secrets": [],
+            "licenses": []
+        }
+    },
+    "relationships": {
+        "corporate_structure": [],
+        "founder_relationships": [
+            {
+                "person": "Divya Krishna R",
+                "relationship": "co_founded",
+                "entity": "Sia",
+                "equity_stake": null
+            },
+            {
+                "person": "Sumalata Kamat",
+                "relationship": "co_founded",
+                "entity": "Sia",
+                "equity_stake": null
+            },
+            {
+                "person": "Karthik. C",
+                "relationship": "co_founded",
+                "entity": "Sia",
+                "equity_stake": null
+            }
+        ],
+        "customer_relationships": [
+            {
+                "customer": "Abha Hospitals",
+                "relationship": "purchases",
+                "product_service": "Sia Agentic AI for Data Analytics",
+                "contract_value": 98000.0,
+                "contract_duration": 24
+            }
+        ],
+        "investor_relationships": [],
+        "competitive_relationships": [],
+        "supply_chain_relationships": []
+    },
+    "business_model_classification": {
+        "primary_model": "b2b",
+        "revenue_model": "saas",
+        "delivery_model": "cloud",
+        "sales_model": "field_sales",
+        "pricing_strategy": "value_based",
+        "monetization_timeline": "immediate"
+    },
+    "market_analysis": {
+        "tam": {
+            "global_value": 300000000000.0,
+            "regional_values": {},
+            "calculation_method": null,
+            "source": null,
+            "year": null
+        },
+        "sam": null,
+        "som": {
+            "value": 20000000000.0,
+            "percentage_of_tam": null,
+            "accessible_segments": [
+                "Agentic AI market"
+            ],
+            "time_to_capture": null
+        },
+        "market_dynamics": {
+            "growth_rate": 0.13,
+            "key_drivers": [
+                "Increase in volume of data generated",
+                "Need for data-driven decision making",
+                "Rise of AI agents"
+            ],
+            "barriers_to_entry": [],
+            "regulatory_factors": [],
+            "technology_trends": [
+                "AI agents becoming primary interaction method",
+                "Increased enterprise adoption of AI-driven analytics"
+            ]
+        },
+        "competitive_landscape": {
+            "market_leaders": [],
+            "market_share_distribution": {},
+            "competitive_advantages": [
+                "Agentic AI approach",
+                "Simple Chat Interface",
+                "Democratization of AI & Data",
+                "Context aware insights",
+                "Minimized bottlenecks"
+            ],
+            "positioning": "challenger"
+        }
+    },
+    "financial_data": {
+        "historical_financials": null,
+        "current_metrics": {
+            "cash_balance": null,
+            "monthly_burn_rate": null,
+            "runway_months": 12,
+            "working_capital": null,
+            "debt": null,
+            "deferred_revenue": null
+        },
+        "projections": {
+            "revenue_projections": [
+                {
+                    "year": 2026,
+                    "amount": 500000.0,
+                    "assumptions": []
+                },
+                {
+                    "year": 2027,
+                    "amount": 400000.0,
+                    "assumptions": []
+                },
+                {
+                    "year": 2028,
+                    "amount": 1800000.0,
+                    "assumptions": []
+                },
+                {
+                    "year": 2029,
+                    "amount": 1200000.0,
+                    "assumptions": []
+                },
+                {
+                    "year": 2030,
+                    "amount": 36000000.0,
+                    "assumptions": []
+                }
+            ],
+            "path_to_profitability": null,
+            "break_even_point": null,
+            "funding_requirements": [
+                {
+                    "round": "Series A",
+                    "amount": null,
+                    "timeline": null
+                }
+            ]
+        },
+        "unit_economics_detail": {
+            "customer_economics": {
+                "cac_by_channel": {},
+                "ltv_by_segment": {},
+                "payback_period": null,
+                "contribution_margin_evolution": []
+            },
+            "cohort_analysis": {
+                "retention_curves": [],
+                "revenue_expansion": [],
+                "churn_analysis": {}
+            }
+        }
+    },
+    "operational_metrics": {
+        "customer_metrics": {
+            "total_customers": null,
+            "enterprise_customers": null,
+            "smb_customers": null,
+            "customer_concentration": null,
+            "nps_score": null,
+            "csat_score": null,
+            "support_tickets": null,
+            "response_time": null
+        },
+        "product_metrics": {
+            "mau": null,
+            "dau": null,
+            "wau": null,
+            "feature_adoption": {},
+            "engagement_score": null,
+            "session_duration": null,
+            "retention_cohorts": []
+        },
+        "sales_metrics": {
+            "pipeline_value": null,
+            "qualified_leads": null,
+            "sales_cycle_days": 305,
+            "win_rate": null,
+            "upsell_rate": null,
+            "quota_attainment": null
+        },
+        "operational_efficiency": {
+            "revenue_per_employee": null,
+            "customer_per_employee": null,
+            "gross_margin_per_employee": null,
+            "automation_percentage": null
+        }
+    },
+    "industry_specific_metrics": {
+        "saas": {
+            "arr": null,
+            "nrr": null,
+            "grr": null,
+            "logo_churn": null,
+            "dollar_churn": null,
+            "expansion_revenue": null,
+            "downgrades": null,
+            "quick_ratio": null,
+            "cac_payback": null,
+            "ltv_cac_ratio": null,
+            "magic_number": null,
+            "rule_of_40": null,
+            "burn_multiple": null,
+            "efficiency_score": null,
+            "bessemer_efficiency": null
+        },
+        "marketplace": null,
+        "ecommerce": null,
+        "fintech": null,
+        "edtech": null,
+        "healthtech": null,
+        "proptech": null,
+        "logistics": null,
+        "agtech": null,
+        "gaming": null,
+        "deeptech": null,
+        "hardware": null,
+        "cleantech": null,
+        "mobility": null,
+        "foodtech": null,
+        "insurtech": null,
+        "biotech": null,
+        "spacetech": null,
+        "blockchain": null,
+        "cybersecurity": null,
+        "robotics": null,
+        "quantum": null,
+        "ar_vr": null,
+        "social_media": null,
+        "legaltech": null,
+        "hrtech": null,
+        "regtech": null,
+        "traveltech": null,
+        "retailtech": null,
+        "adtech": null,
+        "fashiontech": null,
+        "sportstech": null,
+        "musictech": null,
+        "mediatech": null
+    },
+    "risk_assessment": {
+        "business_risks": {
+            "market_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "execution_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "technology_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "regulatory_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "competitive_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "financial_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "key_person_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "scalability_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "cybersecurity_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            },
+            "reputation_risk": {
+                "level": null,
+                "factors": [],
+                "mitigation": []
+            }
+        },
+        "red_flags": []
+    },
+    "investment_analysis": {
+        "investment_thesis": {
+            "key_strengths": [
+                "Cohesive team with over 8 years of experience",
+                "First-hand experience of the problem",
+                "Combination of Data & Domain expertise",
+                "Scalable AI Adoption",
+                "Improved future readiness"
+            ],
+            "value_proposition": "Turn data into actionable insights and AI-powered decisions instantly, unifying data processes, ensuring org-wide AI readiness & adoption, built-in workflow intelligence.",
+            "market_opportunity_assessment": "TAM: $300 Billion for Global Data Analytics, SOM: $200 Billion by 2034 for Agentic AI market.",
+            "competitive_positioning": "Differentiates from conventional systems by providing faster insights, handling larger data volumes, reducing costs, and enabling accessible data for everyone.",
+            "scalability_potential": "Scalable AI Adoption, Expansion to international markets, Setting up of partner ecosystem.",
+            "exit_potential": "Short term: Series A or B exit (5x return), Long term: Exit via IPO (30x to 40x returns)."
+        },
+        "valuation_analysis": {
+            "current_valuation": null,
+            "valuation_method": null,
+            "revenue_multiple": null,
+            "ebitda_multiple": null,
+            "user_multiple": null,
+            "comparable_companies": [],
+            "valuation_justification": null
+        },
+        "deal_terms": {
+            "investment_amount": 500000000.0,
+            "ownership_percentage": null,
+            "board_seats": null,
+            "observer_rights": null,
+            "information_rights": null,
+            "pro_rata_rights": null,
+            "liquidation_preference": null,
+            "anti_dilution": null,
+            "drag_along": null,
+            "tag_along": null,
+            "vesting_schedule": null,
+            "option_pool": null
+        },
+        "exit_scenarios": {
+            "ipo_timeline": null,
+            "acquisition_candidates": [],
+            "strategic_buyers": [],
+            "financial_buyers": [],
+            "expected_exit_multiple": null,
+            "expected_irr": null
+        },
+        "investment_score": {
+            "team_score": null,
+            "market_score": null,
+            "product_score": null,
+            "traction_score": null,
+            "financials_score": null,
+            "overall_score": null,
+            "recommendation": null
+        }
+    },
+    "esg_impact": null,
+    "data_quality_validation": {
+        "completeness": {
+            "mandatory_fields_present": 0.5,
+            "optional_fields_present": 0.2,
+            "overall_completeness": 0.35
+        },
+        "consistency": {
+            "financial_consistency": false,
+            "date_consistency": false,
+            "metric_consistency": false,
+            "cross_reference_validation": false
+        },
+        "accuracy": {
+            "market_size_validation": true,
+            "growth_rate_validation": true,
+            "unit_economics_validation": true,
+            "cap_table_validation": false
+        },
+        "confidence_scores": {
+            "extracted_data_confidence": 0.7,
+            "inferred_data_confidence": 0.4,
+            "calculated_data_confidence": 0.5,
+            "overall_confidence": 0.53
+        },
+        "data_sources": {
+            "pitch_deck_pages": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16
+            ],
+            "external_sources": [
+                "Gartner",
+                "PRNewswire",
+                "IBM Research",
+                "Marketresearchfuture",
+                "market.us",
+                "data.worldbank.org",
+                "Accenture"
+            ],
+            "verification_status": "partial",
+            "last_updated": "2024-07-30T10:00:00Z"
+        }
+    },
+    "extraction_output": {
+        "summary": {
+            "company_snapshot": "Sia (Datastride Analytics) is an Agentic AI for Data Analytics company that provides a simple chat interface to democratize AI and data access across an organization. They aim to turn data into actionable insights and AI-powered decisions instantly, unifying data processes and improving AI readiness. The company is targeting medium to large enterprises and has already secured key customers like Bosch and Abha Hospitals, with ongoing pilots with Mercedes-Benz and others. Their expected revenues are $400k in FY 25-26.",
+            "investment_highlights": [
+                "Cohesive founding team with extensive experience.",
+                "Addressing a critical market need for accessible data analytics.",
+                "Strong projected market growth for Agentic AI.",
+                "Demonstrated impact with significant improvements in time to insights, data volume processed, and budget reduction.",
+                "Clear GTM strategy focused on partnerships.",
+                "Well-defined business model with recurring revenue.",
+                "Established traction with notable customers and pilots.",
+                "Clear exit strategy with potential for high returns."
+            ],
+            "key_metrics": {
+                "Time to Insights": "< 5 minutes (90% quicker)",
+                "Volume of Data Processed": "100 Gb (10x Increase)",
+                "Budget for Data Analytics": "$500,000 (4x Reduction)",
+                "Project Deployment Time": "2 to 3 weeks (80% saved)",
+                "Average Contract Value": "$150k-$300k",
+                "Client Lifetime Value": "$1 Million+",
+                "Sales Cycle Duration": "9 to 12 months",
+                "TAM": "$300 Billion",
+                "SOM": "$200 Billion (2034)"
+            },
+            "ask_summary": "Seeking INR 5 Crores in a Seed stage round to fund 30% product development, 60% sales and marketing, and 10% operational and miscellaneous costs. The funds will be used for client acquisition, generating early revenues, scaling to international markets, IP registration, industry research, and setting up a partner ecosystem.",
+            "next_steps": [
+                "Review detailed financials and projections.",
+                "Conduct due diligence on the team and technology.",
+                "Assess competitive landscape and market positioning.",
+                "Validate customer traction and pilot success."
+            ]
+        },
+        "metadata": {
+            "extraction_id": "12345",
+            "processing_time": 10.5,
+            "extractor_version": "1.0",
+            "quality_score": 0.65,
+            "review_status": "reviewed",
+            "reviewer_notes": [
+                "Some financial data and specific dates are missing or inferred.",
+                "Competitor landscape and detailed market share data not provided.",
+                "Founder equity percentages are not available."
+            ]
+        }
+    }
+}

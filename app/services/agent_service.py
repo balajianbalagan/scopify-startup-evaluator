@@ -10,14 +10,14 @@ import re
 logger = logging.getLogger(__name__)
 
 class AgentService:
-    def __init__(self, base_url: Optional[str] = None, timeout: float = 30.0):
+    def __init__(self, base_url: Optional[str] = None, timeout: float = 60.0):
         # Fallback to the provided default if not in settings
         self.base_url = (
             base_url
             or getattr(settings, "AGENT_API_BASE_URL", None)
             or "https://pitch-analysis-634194827064.us-central1.run.app"
         )
-        self.timeout = timeout
+        self.timeout = httpx.Timeout(60.0, read=60.0, write=60.0, connect=30.0)
 
     async def invoke_session(self, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -106,7 +106,7 @@ class AgentService:
             if parsed is not None:
                 return parsed
 
-        raise RuntimeError("Failed to parse JSON from agent response text")
+        raise RuntimeError("Failed to parse JSON from agent response text", texts)
 
     def _extract_error(self, resp: httpx.Response) -> str:
         try:
