@@ -10,6 +10,7 @@ import {
   FiGlobe,
   FiBriefcase,
   FiClock,
+  FiLayers,
 } from 'react-icons/fi';
 
 type NavItem = {
@@ -36,6 +37,7 @@ export default function LeftSidebar() {
 
   const items: NavItem[] = [
     { label: 'Startups', icon: <FiHome size={20} />, href: '/startups/list' },
+    { label: 'Companies', icon: <FiLayers size={20} />, href: '/companies' },
     { label: 'Add Startup', icon: <FiPlusCircle size={20} />, href: '/startups/add' },
     { label: 'Follow-ups', icon: <FiRepeat size={20} />, href: '/followups' },
     { label: 'News', icon: <FiGlobe size={20} />, href: '/news' },

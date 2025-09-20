@@ -2,16 +2,78 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { agentService } from '@/lib/agentService';
+import { useAuth } from '@/hooks/useAuth';
+import AnalysisView from '@/components/analysis/AnalysisView';
+import { startupApiService } from '@/lib/startupApi';
+import { bigQueryService } from '@/lib/bigQueryServices';
 
 export default function AddStartupEntry() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<any | null>(null);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // Only upload to BigQuery and return the response
+  async function bigQueryFlow(pdf: File) {
+    return bigQueryService.processDocument(pdf);
+  }
+
+  async function handleIngest() {
+    setError(null);
+    if (!file) {
+      setError('Please choose a file first.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const userId = String(user?.id ?? 'anonymous');
+      const sessionId = `sess-${Date.now()}`;
+
+      // Run both in parallel with the same PDF
+      const [result, bqRes] = await Promise.all([
+        agentService.runSession('startup-analyser', userId, sessionId, file),
+        bigQueryFlow(file),
+      ]);
+
+      setAnalysis(result);
+
+      // Build extras from BigQuery response
+      const extras = {
+        pitch_deck_url: (bqRes && bqRes.pitch_deck_url) || null,
+        benchmark_status: 'not_started',
+        deal_notes_status: 'not_started'
+      };
+
+      // Create company from analysis + extras and navigate
+      try {
+        const created = await startupApiService.createCompanyFromAnalysis(result, extras);
+        if (created?.id) {
+          router.push(`/companies/${created.id}`);
+          return;
+        }
+      } catch (e: any) {
+        console.error('Failed to create company from analysis:', e);
+        setError(e?.message || 'Ingested, but failed to add company.');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Failed to ingest pitch deck.');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div className="min-h-[70vh] bg-gray-50 p-6 rounded-lg">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Add Startup</h1>
-          <p className="text-sm text-gray-500">Upload pitch deck, confirm extraction, review benchmarks & flags.</p>
+          <p className="text-sm text-gray-500">Upload pitch deck, then review the extracted analysis.</p>
         </div>
         <Link href="/startups/list" className="text-sm text-indigo-600">Cancel</Link>
       </div>
@@ -20,44 +82,28 @@ export default function AddStartupEntry() {
         {step === 1 && (
           <div>
             <h2 className="font-semibold mb-2">1 — Ingest Pitch Deck</h2>
-            <input type="file" className="border border-gray-300 rounded-md p-2" />
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="border border-gray-300 rounded-md p-2"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+            {file && <p className="text-xs text-gray-500 mt-2">Selected: {file.name}</p>}
+            {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setStep(2)} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Confirm & Next</button>
+              <button
+                onClick={handleIngest}
+                disabled={!file || uploading}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md disabled:opacity-50"
+              >
+                {uploading ? 'Uploading…' : 'Ingest Pitch Deck'}
+              </button>
             </div>
           </div>
         )}
 
-        {step === 2 && (
-          <div>
-            <h2 className="font-semibold mb-2">2 — Benchmarks</h2>
-            <p className="text-sm text-gray-500">ARR vs peers, burn multiple, CAC/LTV</p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setStep(1)} className="px-3 py-1.5 border rounded-md">Back</button>
-              <button onClick={() => setStep(3)} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Next: Flags</button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div>
-            <h2 className="font-semibold mb-2">3 — Flags</h2>
-            <p className="text-sm text-gray-500">Resolve metric mismatches and mark risks</p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setStep(2)} className="px-3 py-1.5 border rounded-md">Back</button>
-              <button onClick={() => setStep(4)} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Next: Review</button>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div>
-            <h2 className="font-semibold mb-2">4 — Review & Publish</h2>
-            <p className="text-sm text-gray-500">Edit deal note and publish to the platform</p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setStep(3)} className="px-3 py-1.5 border rounded-md">Back</button>
-              <button className="px-4 py-2 bg-emerald-600 text-white rounded-md">Publish</button>
-            </div>
-          </div>
+        {step === 2 && analysis && (
+          <AnalysisView data={analysis} onBack={() => setStep(1)} />
         )}
       </div>
     </div>

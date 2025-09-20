@@ -11,6 +11,8 @@ export const useAuth = () => {
     const checkAuth = async () => {
       try {
         if (apiService.isAuthenticated()) {
+          // Start auto-refresh loop on mount if already authenticated
+          apiService.startTokenAutoRefresh();
           const userData = await apiService.fetchCurrentUser();
           setUser(userData);
         } else {
@@ -26,6 +28,9 @@ export const useAuth = () => {
     };
 
     checkAuth();
+
+    // Stop the refresh timer on unmount
+    return () => apiService.stopTokenAutoRefresh();
   }, []);
 
   const logout = () => {

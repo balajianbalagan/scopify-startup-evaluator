@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export interface LoginCredentials {
   email: string;
@@ -26,18 +26,81 @@ export interface User {
 
 class ApiService {
   private currentUser: User | null = null;
+  private refreshTimerId: number | null = null;
 
   private getAuthHeaders(): HeadersInit {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      ...(token && { Authorization: `Bearer ${token}` }),
     };
+  }
+
+  // Decode JWT to read exp (seconds since epoch)
+  private decodeJwt(token: string): { exp?: number } | null {
+    try {
+      if (typeof window === 'undefined') return null;
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  private clearRefreshTimer() {
+    if (this.refreshTimerId !== null) {
+      clearTimeout(this.refreshTimerId);
+      this.refreshTimerId = null;
+    }
+  }
+
+  private scheduleAutoRefresh() {
+    if (typeof window === 'undefined') return;
+    this.clearRefreshTimer();
+
+    const access = localStorage.getItem('access_token');
+    const refresh = localStorage.getItem('refresh_token');
+    if (!access || !refresh) return;
+
+    const payload = this.decodeJwt(access);
+    const skewMs = 30_000; // refresh 30s early
+    // Fallback every 10 minutes if exp missing
+    let delayMs = 10 * 60 * 1000;
+
+    if (payload?.exp) {
+      delayMs = Math.max(5_000, payload.exp * 1000 - Date.now() - skewMs);
+    }
+
+    this.refreshTimerId = window.setTimeout(async () => {
+      try {
+        await this.refreshToken();
+        this.scheduleAutoRefresh(); // reschedule after successful refresh
+      } catch (e) {
+        console.error('Token auto-refresh failed:', e);
+        this.logout();
+      }
+    }, delayMs);
+  }
+
+  // Public controls
+  startTokenAutoRefresh() {
+    if (this.isAuthenticated()) this.scheduleAutoRefresh();
+  }
+  stopTokenAutoRefresh() {
+    this.clearRefreshTimer();
   }
 
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     console.log('Attempting login with:', { email: credentials.email });
-    
+
     try {
       const formData = new FormData();
       formData.append('username', credentials.email);
@@ -54,15 +117,14 @@ class ApiService {
       }
 
       const data = await response.json();
-      
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
+        this.scheduleAutoRefresh();
       }
 
-      // Fetch user data after successful login
       await this.fetchCurrentUser();
-      
       return data;
     } catch (error) {
       console.error('Login failed:', error);
@@ -73,9 +135,7 @@ class ApiService {
   async register(userData: RegisterData): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
     });
 
@@ -98,6 +158,7 @@ class ApiService {
       if (response.status === 401) {
         try {
           await this.refreshToken();
+          this.scheduleAutoRefresh();
           return this.fetchCurrentUser();
         } catch {
           this.logout();
@@ -117,9 +178,7 @@ class ApiService {
   }
 
   async ensureCurrentUser(): Promise<User | null> {
-    if (this.currentUser) {
-      return this.currentUser;
-    }
+    if (this.currentUser) return this.currentUser;
 
     if (this.isAuthenticated()) {
       try {
@@ -134,16 +193,15 @@ class ApiService {
   }
 
   async refreshToken(): Promise<void> {
-    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+    const refreshToken =
+      typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
 
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
@@ -156,11 +214,13 @@ class ApiService {
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      this.scheduleAutoRefresh();
     }
   }
 
   logout(): void {
     this.currentUser = null;
+    this.clearRefreshTimer();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -169,6 +229,7 @@ class ApiService {
 
   isAuthenticated(): boolean {
     return typeof window !== 'undefined' && !!localStorage.getItem('access_token');
+    // Optionally, check token expiry via decodeJwt for stricter validation.
   }
 
   async healthCheck(): Promise<boolean> {
@@ -181,7 +242,6 @@ class ApiService {
     }
   }
 
-  // Helper method to get user initials
   getUserInitials(user: User): string {
     if (user.email) {
       const emailParts = user.email.split('@')[0];
@@ -190,7 +250,6 @@ class ApiService {
     return 'U';
   }
 
-  // Helper method to get display name
   getDisplayName(user: User): string {
     if (user.email) {
       const emailParts = user.email.split('@')[0];

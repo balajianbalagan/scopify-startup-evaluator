@@ -1,0 +1,127 @@
+import { API_BASE_URL } from "@/lib/api";
+
+class AgentService {
+  private getAuthHeader(): HeadersInit {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /**
+   * Runs an agent session with a file upload (multipart/form-data).
+   * Mirrors:
+   * curl --location '<API>/agent/run-session' --header 'Authorization: Bearer <token>' \
+   *   --form 'app_name="startup-analyser"' --form 'user_id="123"' --form 'session_id="abc-1"' --form 'file=@"/path/file.pdf"'
+   */
+  async runSession(appName: string, userId: string, sessionId: string, file: File): Promise<any> {
+    const form = new FormData();
+    form.append("app_name", appName);
+    form.append("user_id", userId);
+    form.append("session_id", sessionId);
+    form.append("file", file, file.name);
+
+    const res = await fetch(`${API_BASE_URL}/agent/run-session`, {
+      method: "POST",
+      headers: {
+        // Do NOT set Content-Type; the browser will set the proper multipart boundary.
+        ...this.getAuthHeader(),
+        accept: "application/json",
+      },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      let message = "Agent run-session failed";
+      try {
+        const j = JSON.parse(errBody);
+        message = j.detail || j.message || message;
+      } catch {
+        if (errBody) message = `${message}: ${errBody}`;
+      }
+      throw new Error(message);
+    }
+
+    // Response is expected to be JSON
+    return res.json();
+  }
+
+  async benchmarkResearch(payload: any): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/agent/benchmark/research`, {
+      method: "POST",
+      headers: {
+        ...this.getAuthHeader(),
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      let message = "Agent benchmark research failed";
+      try {
+        const j = JSON.parse(errBody);
+        message = j.detail || j.message || message;
+      } catch {
+        if (errBody) message = `${message}: ${errBody}`;
+      }
+      throw new Error(message);
+    }
+
+    return res.json();
+  }
+
+  async getBenchmarkResearchProgress(sessionId: string): Promise<any> {
+    if (!sessionId) throw new Error('sessionId is required');
+    const url = `${API_BASE_URL}/agent/benchmark/research/${encodeURIComponent(sessionId)}/progress`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeader(),
+        accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      let message = "Agent benchmark research progress failed";
+      try {
+        const j = JSON.parse(errBody);
+        message = j.detail || j.message || message;
+      } catch {
+        if (errBody) message = `${message}: ${errBody}`;
+      }
+      throw new Error(message);
+    }
+
+    return res.json();
+  }
+
+  async getBenchmarkResearchReport(sessionId: string): Promise<any> {
+    if (!sessionId) throw new Error('sessionId is required');
+    const url = `${API_BASE_URL}/agent/benchmark/research/${encodeURIComponent(sessionId)}/report`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeader(),
+        accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      let message = "Agent benchmark research report failed";
+      try {
+        const j = JSON.parse(errBody);
+        message = j.detail || j.message || message;
+      } catch {
+        if (errBody) message = `${message}: ${errBody}`;
+      }
+      throw new Error(message);
+    }
+
+    return res.json();
+  }
+}
+
+export const agentService = new AgentService();
