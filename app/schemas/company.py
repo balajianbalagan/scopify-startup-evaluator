@@ -12,6 +12,11 @@ class CompanyInformationBase(BaseModel):
     company_name: str
     ai_generated_info: Optional[Dict[str, Any]] = None
     search_query: Optional[str] = None
+    pitch_deck_url: Optional[str] = None
+    benchmark_status: Optional[str] = None
+    benchmark_info: Optional[str] = None
+    dealnote_info: Optional[str] = None
+    deal_notes_status: Optional[str] = None
 
 
 class CompanyInformationCreate(CompanyInformationBase):

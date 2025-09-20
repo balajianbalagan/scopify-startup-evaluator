@@ -12,6 +12,7 @@ from app.api.routes.startup import router as startup_router
 from app.api.routes.company import router as company_router
 from app.api.routes.admin import router as admin_router
 from app.api.routes.bigquery import router as bigquery_router
+from app.api.routes.agent import router as agent_router
 from app.api.deps import get_current_user
 from app import crud, schemas
 from app.db.session import get_db
@@ -75,6 +76,7 @@ def seed_mock_data(db: Session, file_path: str):
             crud.company.create_company_search(
                 db, dto, requested_by_id=c["requested_by_id"]
             )
+
 def create_app() -> FastAPI:
     print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME} in {settings.ENVIRONMENT} mode")
     
@@ -94,6 +96,7 @@ def create_app() -> FastAPI:
     application.include_router(company_router)
     application.include_router(admin_router)
     application.include_router(bigquery_router)
+    application.include_router(agent_router)
 
     return application
 
@@ -148,3 +151,10 @@ def read_me(user=Depends(get_current_user)):
 
 # Initialize database on startup
 startup()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        port=8080
+    )

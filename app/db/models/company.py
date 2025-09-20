@@ -10,13 +10,18 @@ class CompanyInformation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), nullable=False, index=True)
-    ai_generated_info = Column(JSON, nullable=True)  # Store the AI response as JSON
-    search_query = Column(Text, nullable=True)  # Store the original search query
+    ai_generated_info = Column(JSON, nullable=True)
+    search_query = Column(Text, nullable=True)
     search_timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     
-    # Foreign key to the user who requested the information
     requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     requested_by = relationship("User", backref="company_searches")
+
+    pitch_deck_url = Column(Text, nullable=True)
+    benchmark_status = Column(Text, nullable=True)
+    benchmark_info = Column(Text, nullable=True)
+    dealnote_info = Column(Text, nullable=True)
+    deal_notes_status = Column(Text, nullable=True) 
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(

@@ -30,7 +30,12 @@ def create_company_search(
         company_name=company_info.company_name,
         ai_generated_info=company_info.ai_generated_info,
         search_query=company_info.search_query,
-        requested_by_id=requested_by_id
+        requested_by_id=requested_by_id,
+        pitch_deck_url=company_info.pitch_deck_url,
+        benchmark_status=company_info.benchmark_status,
+        benchmark_info=company_info.benchmark_info,
+        dealnote_info=company_info.dealnote_info,
+        deal_notes_status=company_info.deal_notes_status,
     )
     db.add(db_company_info)
     db.commit()

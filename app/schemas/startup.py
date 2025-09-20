@@ -47,7 +47,7 @@ class StartupEvaluationResponse(BaseModel):
 class StartupCreate(BaseModel):
     name: str = Field(..., max_length=255)
     website: Optional[str] = Field(None, max_length=500)
-    status: Optional[StartupStatus] = StartupStatus.ACTIVE
+    status: Optional[str] = StartupStatus.ACTIVE
     location: Optional[str] = None
     description: Optional[str] = None
     leading_investor: Optional[str] = None
@@ -80,7 +80,7 @@ class StartupRead(BaseModel):
     id: int
     name: str
     website: Optional[str]
-    status: StartupStatus
+    status: Optional[str]
     location: Optional[str]
     description: Optional[str]
     leading_investor: Optional[str]
