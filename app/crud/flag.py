@@ -1,7 +1,7 @@
 # app/crud/flag.py
+from app.schemas.flag import CompanyFlag
 from sqlalchemy.orm import Session
 from app.db.models.company import CompanyInformation
-from app.db.models.flag import CompanyFlag
 
 def get_companies_with_flags(db: Session):
     # Get all companies and their flags
