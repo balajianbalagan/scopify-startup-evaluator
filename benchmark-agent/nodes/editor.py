@@ -229,46 +229,79 @@ class Editor:
         industry = self.context["industry"]
         hq_location = self.context["hq_location"]
         
-        prompt = f"""Compile benchmark analysis for {company} ({industry}, {hq_location}).
+        prompt = f"""Create a comprehensive benchmark analysis report for {company} ({industry}, {hq_location}) with interactive charts.
+
+CHART CAPABILITIES:
+You can embed interactive charts in Markdown using fenced code blocks with language "markdown-ui-widget".
+
+**Available Chart Types:**
+- chart-line: For trends over time (revenue growth, market trends, performance over years)
+- chart-bar: For comparisons between entities (competitor revenue, market share, employee counts)
+- chart-pie: For distribution/breakdown (market share, regional revenue, funding sources)
+- chart-scatter: For correlation analysis (technology adoption vs impact, risk vs return)
+
+**Chart Syntax:**
+```markdown-ui-widget
+chart-line
+title: Market Growth Trends
+height: 300
+Year,Revenue ($M),Growth Rate (%)
+2020,100,15
+2021,115,18
+2022,135,20
+```
+
+**CHART RULES:**
+- ALWAYS use ```markdown-ui-widget as the fenced code block language
+- Use real data from briefings to populate charts
+- All monetary values in USD ($)
+- Choose appropriate chart type based on data nature
+- Add charts only where data supports meaningful visualization
 
 Source briefings:
 {combined_content}
 
-Output structure:
+REPORT STRUCTURE:
+
 # {company} Benchmark Analysis Report
 
 ## Competitive Landscape
-### Market Leaders
-### Direct Competitors
-### Product Benchmarking
+- Market Leaders (with comparative charts)
+- Direct Competitors (with competitive analysis)
+- Product Benchmarking (with feature/performance comparisons)
 
 ## Market Intelligence
-### Industry Overview
-### Market Dynamics
-### Performance Metrics
+- Industry Overview (with market trend charts)
+- Market Dynamics (with growth/size visualizations)
+- Performance Metrics (with comparative data)
 
 ## Consumer Insights
-### Consumer Sentiment
-### Usage Patterns
-### Market Preferences
+- Consumer Sentiment (with trend analysis)
+- Usage Patterns (with behavioral data)
+- Market Preferences (with preference analysis)
 
 ## Technology Trends
-### Technology Adoption
-### Digital Transformation
-### Emerging Technologies
+- Technology Adoption (with adoption curves)
+- Digital Transformation (with implementation data)
+- Emerging Technologies (with impact analysis)
 
 ## Regional Analysis
-### Economic Indicators
-### Market Opportunities
-### Regulatory Environment
+- Economic Indicators (with regional breakdowns)
+- Market Opportunities (with geographic data)
+- Regulatory Environment (with compliance analysis)
 
 ## Political & Social Context
-### Political Environment
-### Social Trends
-### ESG Factors
+- Political Environment (with stability metrics)
+- Social Trends (with demographic shifts)
+- ESG Factors (with sustainability metrics)
 
-Rules: Clean markdown, no meta-commentary, bullet points only."""
-        
+INSTRUCTIONS:
+1. Use real data from briefings to create meaningful charts
+2. Add charts strategically where data supports visualization
+3. Keep all existing analytical depth and insights
+4. CURRENCY: All monetary values in USD ($) with conversions
+5. Choose chart types based on data characteristics and analytical value"""
+
         try:
             full_prompt = f"""You are an expert report editor that compiles research briefings into comprehensive company reports.
 
@@ -299,7 +332,7 @@ Rules: Clean markdown, no meta-commentary, bullet points only."""
         industry = self.context["industry"]
         hq_location = self.context["hq_location"]
         
-        prompt = f"""Clean and format benchmark report for {company} ({industry}, {hq_location}).
+        prompt = f"""Clean and format interactive benchmark report for {company} ({industry}, {hq_location}).
 
 Input:
 {content}
@@ -308,7 +341,9 @@ Tasks:
 1. Remove redundancy/repetition
 2. Remove empty sections
 3. Remove meta-commentary
-4. Keep substantive market insights only
+4. Keep ALL substantive market insights and analysis
+5. PRESERVE ALL ```markdown-ui-widget blocks EXACTLY as they are
+6. Maintain full content depth in all sections
 
 Required structure:
 # {company} Benchmark Analysis Report
@@ -320,8 +355,14 @@ Required structure:
 ## Political & Social Context
 ## References
 
-Format: Clean markdown, ### subsections, * bullets, preserve references exactly."""
-        
+CRITICAL RULES:
+- Preserve ALL ```markdown-ui-widget blocks completely unchanged
+- Keep full analysis depth in each section
+- Maintain all bullet points and detailed insights
+- Ensure clean markdown formatting with ### subsections
+- Interactive widgets should enhance, not replace content
+- CURRENCY: Display ALL monetary values in USD ($) only. Convert foreign currencies to USD approximations."""
+
         try:
             full_prompt = f"""You are an expert markdown formatter that ensures consistent document structure.
 
