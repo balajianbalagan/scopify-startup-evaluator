@@ -1,4 +1,3 @@
-from app.schemas.flag import CompanyFlag
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Body, Query
 from typing import Optional, Any, Dict
 from sqlalchemy.orm import Session

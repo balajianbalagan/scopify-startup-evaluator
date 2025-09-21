@@ -2,6 +2,13 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
 
+class CompanyMinimal(BaseModel):
+    id: int
+    company_name: str
+    pitchdeck_url: str | None = None
+
+    class Config:
+        from_attributes = True
 
 class CompanySearchRequest(BaseModel):
     company_name: str

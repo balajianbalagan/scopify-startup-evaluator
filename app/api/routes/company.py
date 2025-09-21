@@ -1,5 +1,5 @@
 from app.api.constants.flag_constants import FRIENDLY_NAMES
-from app.schemas.flag import CompanyFlag
+from app.schemas.flag import CompanyWithFlags
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.params import Query
 from sqlalchemy.orm import Session

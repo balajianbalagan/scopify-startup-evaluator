@@ -1,23 +1,39 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
-from sqlalchemy.orm import relationship
+from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from app.schemas.company import CompanyInformationRead
+from app.schemas.company import CompanyMinimal
 
-from app.db.base import Base
+class FlagBase(BaseModel):
+    company_id: int
+    flag_type: str
+    risk_level: Optional[str] = "low"
+    flag_description: str
+    status: Optional[str] = "raised"
 
 
-class CompanyFlag(Base):
-    __tablename__ = "company_flags"
+class FlagCreate(FlagBase):
+    pass
 
-    id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("company_information.id"), nullable=False)
 
-    flag_type = Column(String(50), nullable=False)  # "data_missing" or "risk"
-    risk_level = Column(String(20), default="low")  # high, medium, low
-    flag_description = Column(Text, nullable=False)
-    status = Column(String(30), default="raised")  # raised, awaiting_response, closed, closed_incomplete
+class FlagUpdate(BaseModel):
+    flag_type: Optional[str] = None
+    risk_level: Optional[str] = None
+    flag_description: Optional[str] = None
+    status: Optional[str] = None
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    # Relationship back to company
-    company = relationship("CompanyInformation", backref="flags")
+class FlagRead(FlagBase):
+    id: int
+    created_by: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompanyWithFlags(BaseModel):
+    company: CompanyMinimal
+    flags: List[FlagRead]
+
+    model_config = ConfigDict(from_attributes=True)
