@@ -155,3 +155,68 @@ async def benchmark_research_report(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Benchmark research report failed: {str(e)}"
         )
+
+
+@router.post("/dealnote/session", summary="Create/Invoke Dealnote session")
+async def dealnote_create_session(
+    user_id: str = Query(..., description="Dealnote userId"),
+    session_id: str = Query(..., description="Dealnote sessionId"),
+    current_user=Depends(get_current_active_user),
+):
+    """
+    Calls the Dealnote agent session endpoint with an empty JSON payload.
+    """
+    try:
+        agent_service = AgentService()
+        result = await agent_service.invoke_dealnote_session(user_id, session_id, {})
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Dealnote session invocation failed: {str(e)}",
+        )
+
+
+@router.post("/dealnote/run", summary="Run Dealnote /run with payload")
+async def dealnote_run(
+    payload: Dict[str, Any] = Body(..., description="Raw payload for Dealnote /run"),
+    current_user=Depends(get_current_active_user),
+):
+    """
+    Calls the Dealnote agent /run endpoint with the provided JSON payload.
+    """
+    try:
+        agent_service = AgentService()
+        result = await agent_service.run_dealnote_app(payload)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Dealnote run failed: {str(e)}",
+        )
+
+
+@router.post("/dealnote/session-run", summary="Create Dealnote session then run")
+async def dealnote_session_and_run(
+    user_id: str = Query(..., description="Dealnote userId"),
+    session_id: str = Query(..., description="Dealnote sessionId"),
+    run_payload: Dict[str, Any] = Body(..., alias="runPayload", description="Payload for /run call"),
+    current_user=Depends(get_current_active_user),
+):
+    """
+    Convenience endpoint that first invokes the Dealnote session (with empty body) and then triggers /run.
+    Expects a JSON body with key: { "runPayload": {...} }
+    """
+    try:
+        agent_service = AgentService()
+        result = await agent_service.create_dealnote_session_and_run(
+            user_id=user_id,
+            session_id=session_id,
+            run_payload=run_payload,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Dealnote session-run failed: {str(e)}",
+        )

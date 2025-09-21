@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from app.db.models.flag import CompanyFlag
 
 from app.api.deps import get_current_active_user, require_partner_or_admin
 from app.crud import company as company_crud

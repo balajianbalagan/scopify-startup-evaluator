@@ -136,11 +136,18 @@ class AgentService:
     def _extract_json_string(self, text: str) -> str:
         """
         Extract JSON from possible fenced blocks like ```json ... ``` or fallback to raw text.
+        Also handles cases where the block starts with ```json but has no closing fence.
         """
-        m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, re.IGNORECASE)
+        t = text.strip()
+        m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", t, re.IGNORECASE)
         if m:
             return m.group(1).strip()
-        return text.strip()
+        # Handle a starting fence without a closing one: drop the first line (``` or ```json)
+        if t.startswith("```"):
+            lines = t.splitlines()
+            if lines:
+                t = "\n".join(lines[1:]).strip()
+        return t
 
     def _try_parse_json(self, text: str) -> Optional[Dict[str, Any]]:
         """
@@ -262,3 +269,112 @@ class AgentService:
             return resp.json()
         logger.error("Benchmark research report failed: %s", resp.text)
         raise RuntimeError(f"Benchmark research report invocation failed: {resp.text}")
+
+    async def invoke_dealnote_session(self, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        POST https://dealnote-agent-.../apps/dealnote-agent/users/{user_id}/sessions/{session_id}
+        Payload is passed through as-is.
+        """
+        dealnote_base = "https://dealnote-agent-634194827064.us-central1.run.app"
+        url = f"{dealnote_base}/apps/dealnote-agent/users/{user_id}/sessions/{session_id}"
+        logger.info("Invoking dealnote session: url=%s user=%s session=%s", url, user_id, session_id)
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(
+                url,
+                json=payload,
+                headers={
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                },
+            )
+        logger.debug("POST %s -> %s %s", url, resp.status_code, resp.reason_phrase)
+        if resp.is_success:
+            return resp.json()
+        logger.error("Dealnote session failed: %s", resp.text)
+        raise RuntimeError(f"Dealnote session invocation failed: {self._extract_error(resp)}")
+
+    async def run_dealnote_app(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        payload: Dict[str, Any],
+        streaming: bool = False,
+        state_delta: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        POST https://dealnote-agent-.../run with the required structure.
+        The payload argument is stringified and sent in newMessage.parts[0].text.
+        """
+        dealnote_base = "https://dealnote-agent-634194827064.us-central1.run.app"
+        url = f"{dealnote_base}/run"
+        run_payload = {
+            "appName": "dealnote-agent",
+            "userId": user_id,
+            "sessionId": session_id,
+            "newMessage": {
+                "parts": [
+                    {
+                        "text": json.dumps(payload)
+                    }
+                ],
+                "role": "user"
+            },
+            "streaming": streaming,
+            "stateDelta": state_delta if state_delta is not None else {"additionalProp1": {}}
+        }
+        logger.info("Calling dealnote /run: url=%s", url)
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(
+                url,
+                json=run_payload,
+                headers={
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                },
+            )
+        logger.debug("POST %s -> %s %s", url, resp.status_code, resp.reason_phrase)
+        if not resp.is_success:
+            logger.error("Dealnote /run failed: %s", resp.text)
+            raise RuntimeError(f"Dealnote run invocation failed: {self._extract_error(resp)}")
+
+        result = resp.json()
+
+        texts = self._extract_texts(result)
+        if not texts:
+            logger.error("No text parts found in dealnote /run response")
+            raise RuntimeError("No text parts found in dealnote /run response")
+
+        for t in texts:
+            json_str = self._extract_json_string(t)
+            parsed = self._try_parse_json(json_str)
+            if parsed is not None:
+                return parsed
+
+        logger.error("Failed to parse JSON from dealnote /run response text")
+        raise RuntimeError("Failed to parse JSON from dealnote /run response text")
+
+    async def create_dealnote_session_and_run(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        run_payload: Dict[str, Any],
+        streaming: bool = False,
+        state_delta: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Convenience helper that:
+        1) Creates a Dealnote session (with empty payload)
+        2) Triggers /run with the provided payload
+        Returns the response from /run.
+        """
+        # Always use empty dict for session creation
+        await self.invoke_dealnote_session(user_id, session_id, {})
+        return await self.run_dealnote_app(
+            user_id=user_id,
+            session_id=session_id,
+            payload=run_payload,
+            streaming=streaming,
+            state_delta=state_delta
+        )
