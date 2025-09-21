@@ -37,7 +37,7 @@ export default function AddStartupEntry() {
 
       // Run both in parallel with the same PDF
       const [result, bqRes] = await Promise.all([
-        agentService.runSession('startup-analyser', userId, sessionId, file),
+        agentService.runSession(userId, sessionId, file),
         bigQueryFlow(file),
       ]);
 

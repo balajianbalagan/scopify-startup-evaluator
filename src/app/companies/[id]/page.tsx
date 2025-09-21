@@ -634,9 +634,9 @@ export default function CompanyDetailsPage() {
     };
   }, [section, progress, report]);
 
-// -----------------------------
-// Deal Note generation state/UI
-// -----------------------------
+  // -----------------------------
+  // Deal Note generation state/UI
+  // -----------------------------
 
   const [dealNoteRunning, setDealNoteRunning] = useState(false);
   const [dealNoteError, setDealNoteError] = useState<string | null>(null);
@@ -654,6 +654,20 @@ export default function CompanyDetailsPage() {
     }
   }, [company?.dealnote_info]);
 
+  const hasDealNotePrereqs = useMemo(() => {
+    const hasAnalysis = !!company?.ai_generated_info && String(company.ai_generated_info).length > 2;
+    const hasBenchmark = !!company?.benchmark_info && String(company.benchmark_info).length > 2;
+    return hasAnalysis && hasBenchmark;
+  }, [company?.ai_generated_info, company?.benchmark_info]);
+
+  function validateDealNotePrereqs() {
+    if (!hasDealNotePrereqs) {
+      setDealNoteError('Benchmark info is not completely extracted.');
+      return false;
+    }
+    return true;
+  }
+
   useEffect(() => {
     // If entering Deal Note section and we already have one saved, surface it
     if (section === 4 && !dealNoteRunning && !dealNoteResult && savedDealNote) {
@@ -668,10 +682,70 @@ export default function CompanyDetailsPage() {
     }
   }, [section]);
 
+  // Validate deal-note shape (either the object itself or { investment_analysis_note: {...} })
+  function isValidDealNoteShape(obj: any): boolean {
+    const note = obj?.investment_analysis_note ?? obj;
+    return (
+      note &&
+      typeof note === 'object' &&
+      note.header &&
+      typeof note.header.company_name === 'string' &&
+      note.overall_assessment &&
+      typeof note.overall_assessment.confidence_percentage !== 'undefined'
+    );
+  }
+
+  function normalizeDealNoteResult(raw: any): any {
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+    return raw;
+  }
+
+  function sleep(ms: number) {
+    return new Promise((res) => setTimeout(res, ms));
+  }
+
+  // Try up to 3 times to get a valid JSON deal note
+  async function runDealNoteWithRetry(
+    userId: string,
+    sessionId: string,
+    company: Company,
+    maxAttempts = 3
+  ): Promise<any> {
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const raw = await agentService.runDealNoteSession(userId, sessionId, company);
+        const normalized = normalizeDealNoteResult(raw);
+        if (!isValidDealNoteShape(normalized)) {
+          throw new Error('Invalid deal note JSON/shape');
+        }
+        return normalized;
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < maxAttempts) {
+          // simple exponential backoff
+          await sleep(800 * attempt);
+          continue;
+        }
+      }
+    }
+    throw lastErr ?? new Error('Failed to generate deal note');
+  }
+
   async function handleGenerateDealNote() {
     if (!company) return;
     setDealNoteError(null);
     setDealNoteResult(null);
+
+    if (!validateDealNotePrereqs()) return;
+
     setDealNoteRunning(true);
 
     const userId = String(company.requested_by_id ?? '0');
@@ -681,8 +755,8 @@ export default function CompanyDetailsPage() {
         : `deal-${Date.now()}`;
 
     try {
-      // Send the whole company object as payload
-      const result = await agentService.runDealNoteSession(userId, sessionId, company);
+      // Retry up to 3 times until valid JSON is received
+      const result = await runDealNoteWithRetry(userId, sessionId, company, 3);
 
       // Save to backend: upload JSON into dealnote_info
       try {
@@ -974,7 +1048,14 @@ export default function CompanyDetailsPage() {
                 <h2 className="font-semibold">4 — Generate Deal Note</h2>
                 <p className="text-sm text-gray-500">Generate AI powered deal note</p>
                 {dealNoteError && (
-                  <div className="mt-2 text-red-600 text-sm">{dealNoteError}</div>
+                  <div className="mt-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm">
+                    {dealNoteError}
+                  </div>
+                )}
+                {!savedDealNote && !dealNoteResult && !dealNoteRunning && !hasDealNotePrereqs && (
+                  <div className="mt-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm">
+                    Benchmark info is not completely extracted. Please complete Benchmarks and initial Analysis first.
+                  </div>
                 )}
               </div>
               <div className="flex-1 overflow-auto nice-scroll p-5">
@@ -985,7 +1066,7 @@ export default function CompanyDetailsPage() {
                     </button>
                     <button
                       onClick={handleGenerateDealNote}
-                      disabled={dealNoteRunning}
+                      disabled={dealNoteRunning || !hasDealNotePrereqs}
                       className="px-4 py-2 bg-emerald-600 text-white rounded-md disabled:opacity-50"
                     >
                       {dealNoteRunning ? 'Generating…' : 'Generate'}
@@ -1008,7 +1089,6 @@ export default function CompanyDetailsPage() {
 
                 {(dealNoteResult || savedDealNote) && !dealNoteRunning && (
                   <div className="mt-2">
-                    {/* Replace raw JSON with the new structured view */}
                     <DealNoteView data={dealNoteResult || savedDealNote} />
                   </div>
                 )}

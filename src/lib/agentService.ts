@@ -13,9 +13,8 @@ class AgentService {
    * curl --location '<API>/agent/run-session' --header 'Authorization: Bearer <token>' \
    *   --form 'app_name="startup-analyser"' --form 'user_id="123"' --form 'session_id="abc-1"' --form 'file=@"/path/file.pdf"'
    */
-  async runSession(appName: string, userId: string, sessionId: string, file: File): Promise<any> {
+  async runSession( userId: string, sessionId: string, file: File): Promise<any> {
     const form = new FormData();
-    form.append("app_name", appName);
     form.append("user_id", userId);
     form.append("session_id", sessionId);
     form.append("file", file, file.name);
