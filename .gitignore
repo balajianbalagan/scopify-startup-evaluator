@@ -4,7 +4,8 @@ node_modules/
 # Next.js build output
 .next/
 out/
-
+.open-next/
+.wrangler/
 # Logs
 logs/
 *.log

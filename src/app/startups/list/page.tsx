@@ -77,7 +77,7 @@ export default function StartupsListPage() {
         name: company.company_name,
         type: 'company' as const,
         sector: 'Research',
-        search_timestamp: company.search_timestamp,
+        search_timestamp: company.created_at,
         description: company.search_query
       }));
 
