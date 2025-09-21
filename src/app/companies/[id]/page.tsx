@@ -3,10 +3,11 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AnalysisView from '@/components/analysis/AnalysisView';
-import { startupApiService } from '@/lib/startupApi';
+import { CompanyFlag, startupApiService  } from '@/lib/startupApi';
 import { agentService } from '@/lib/agentService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import FlagsSummary from '@/components/analysis/FlagSummary';
 
 type SectionKey = 1 | 2 | 3 | 4;
 
@@ -64,6 +65,23 @@ export default function CompanyDetailsPage() {
   const [report, setReport] = useState<BenchmarkReport | null>(null);
   const [progressError, setProgressError] = useState<string | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+
+  const [flags, setFlags] = useState<CompanyFlag[]>([]);
+   useEffect(() => {
+    if (!company?.id) return;
+    setLoading(true);
+    startupApiService.getCompanyFlags(company.id)
+      .then((data) => {
+        setFlags(data);
+        setError(null);
+      })
+      .catch((err) => {
+        setError(err.message || 'Error fetching flags');
+        setFlags([]);
+      })
+      .finally(() => setLoading(false));
+  }, [company?.id]);
 
   function getBenchmarkJobId(company: Company | null): string | null {
     return company?.ai_generated_info?.benchmark_job_id || company?.benchmark_job_id || null;
@@ -352,15 +370,8 @@ export default function CompanyDetailsPage() {
               <h2 className="font-semibold mb-2">3 — Flags</h2>
               <p className="text-sm text-gray-500">Resolve metric mismatches and mark risks</p>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => setSection(2)} className="px-3 py-1.5 border rounded-md">
-                  Back
-                </button>
-                <button
-                  onClick={() => setSection(4)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md"
-                >
-                  Next: Review
-                </button>
+                <FlagsSummary companyName={company.company_name} flags={flags} />
+
               </div>
             </div>
           )}

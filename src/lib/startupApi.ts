@@ -32,6 +32,30 @@ export interface Company {
   deal_notes_status?: string;
   created_at: string;
 }
+export interface CompanyFlag {
+  company_id: number;
+  flag_type: string;
+  risk_level: string;
+  flag_description: string;
+  status: string;
+  id: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Company {
+  id: number;
+  company_name: string;
+  pitchdeck_url: string | null;
+}
+
+export interface GroupedFlags {
+  company: Company;
+  flags: CompanyFlag[];
+}
+
+
 
 export interface CompanyCreate {
   company_name: string;
@@ -75,6 +99,23 @@ export class StartupApiService {
 
     return response.json();
   }
+
+  async getGroupedFlags(): Promise<GroupedFlags[]> {
+  const url = `${API_BASE_URL}/flags/grouped`;
+  console.log('[flagApi] getGroupedFlags: GET', { url });
+
+  const res = await fetch(url, { headers: this.getAuthHeaders() });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => '');
+    console.error('[flagApi] getGroupedFlags: failed', { status: res.status, body: msg?.slice(0, 300) });
+    throw new Error(msg || 'Failed to fetch grouped flags');
+  }
+
+  const json = await res.json();
+  console.log('[flagApi] getGroupedFlags: success', { companiesCount: json.length });
+  return json as GroupedFlags[];
+}
+
 
   async getCompanies(search?: string, skip: number = 0, limit: number = 50): Promise<Company[]> {
     const params = new URLSearchParams({
@@ -123,6 +164,7 @@ export class StartupApiService {
     return payload;
   }
 
+  
   async createCompany(payload: CompanyCreate): Promise<Company> {
     const url = `${API_BASE_URL}/company/`;
     const startedAt =
@@ -189,6 +231,26 @@ export class StartupApiService {
     console.log('[startupApi] getMyCompanySearches: success', { count: Array.isArray(json) ? json.length : 'n/a' });
     return json;
   }
+
+  async getCompanyFlags(companyId: number): Promise<CompanyFlag[]> {
+  if (!Number.isFinite(companyId)) throw new Error('Invalid company id');
+
+  const url = `${API_BASE_URL}/flags/company/${companyId}`;
+  console.log('[flagApi] getCompanyFlags: GET', { url, companyId });
+
+  const res = await fetch(url, { headers: this.getAuthHeaders() });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => '');
+    console.error('[flagApi] getCompanyFlags: failed', { status: res.status, body: msg?.slice(0, 300) });
+    throw new Error(msg || 'Failed to fetch company flags');
+  }
+
+  const json = await res.json();
+  console.log('[flagApi] getCompanyFlags: success', { count: json.length });
+  return json as CompanyFlag[];
+}
+
+
 
   async getCompanySearch(id: number): Promise<CompanySearch> {
     if (!Number.isFinite(id)) throw new Error('Invalid company search id');
