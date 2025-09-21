@@ -77,6 +77,14 @@ def seed_mock_data(db: Session, file_path: str):
             )
 
 def create_app() -> FastAPI:
+    # Allow CORS only for the deployed frontend
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["https://scopify-frontend-634194827064.us-central1.run.app"],
+        allow_credentials=True,
+        allow_methods=["*"] ,
+        allow_headers=["*"] ,
+    )
     print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME} in {settings.ENVIRONMENT} mode")
     
     application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
