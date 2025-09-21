@@ -36,14 +36,12 @@ export default function LeftSidebar() {
   }, [collapsed]);
 
   const items: NavItem[] = [
-    { label: 'Startups', icon: <FiHome size={20} />, href: '/startups/list' },
-    { label: 'Companies', icon: <FiLayers size={20} />, href: '/companies' },
-    { label: 'Add Startup', icon: <FiPlusCircle size={20} />, href: '/startups/add' },
+    { label: 'Startups', icon: <FiHome size={20} />, href: '/companies' },
+    { label: 'Explore', icon: <FiLayers size={20} />, href: '/startups/list' },
+    { label: 'Add', icon: <FiPlusCircle size={20} />, href: '/startups/add' },
     { label: 'Follow-ups', icon: <FiRepeat size={20} />, href: '/followups' },
     { label: 'News', icon: <FiGlobe size={20} />, href: '/news' },
     { label: 'Portfolio', icon: <FiBriefcase size={20} />, href: '/portfolio' },
-    { label: 'Autopilot', icon: <FiClock size={20} />, href: '/autopilot' },
-    { label: 'Schedule', icon: <FiClock size={20} />, href: '/schedule' },
   ];
 
   return (
@@ -52,7 +50,7 @@ export default function LeftSidebar() {
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
-      <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-xl min-h-[90vh] flex flex-col">
+      <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-xl min-h-[110vh] flex flex-col">
         {/* Logo/Brand */}
         <div className="flex items-center justify-between mb-4">
           <button

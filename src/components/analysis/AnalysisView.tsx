@@ -65,7 +65,17 @@ export default function AnalysisView({ data, onBack }: Props) {
             <p className="text-white/90 mt-1">
               {company?.legal_name || "Company"}{" "}
               {company?.website_url ? (
-                <span className="text-white/80">• {company.website_url}</span>
+                <span className="text-white/80">
+                  •{" "}
+                  <a
+                    href={company.website_url.startsWith("http") ? company.website_url : `https://${company.website_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-white"
+                  >
+                    {company.website_url}
+                  </a>
+                </span>
               ) : null}
             </p>
           </div>
@@ -383,6 +393,17 @@ export default function AnalysisView({ data, onBack }: Props) {
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <Card className="lg:col-span-2">
             <SectionTitle icon="🧭">Thesis</SectionTitle>
+            <div className="mb-4">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <div className="font-semibold">Disclaimer</div>
+                  <div className="text-sm">
+                    This investment thesis is a preliminary assessment and subject to change upon deeper analysis and due diligence.
+                  </div>
+                </div>
+              </div>
+            </div>
             <p className="text-gray-700 leading-relaxed">{investment?.investment_thesis?.value_proposition}</p>
             <h4 className="section-title mt-3">Key Strengths</h4>
             <ul className="list-disc pl-5 text-gray-700 space-y-1">

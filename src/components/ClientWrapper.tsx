@@ -50,11 +50,6 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
 
               {/* main app content */}
               <div className="flex-1 min-h-[60vh]">{children}</div>
-
-              {/* Persistent Copilot (hidden on small screens) */}
-              <div className="hidden lg:block">
-                <CopilotSidebar />
-              </div>
             </div>
           </main>
         </>
