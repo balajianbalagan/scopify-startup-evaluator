@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, Optional
 from app.db.models.company import CompanyInformation
 from sqlalchemy.orm import Session
+import asyncio
 
 import httpx
 from app.core.config import settings
@@ -13,22 +14,31 @@ logger = logging.getLogger(__name__)
 
 class AgentService:
     def __init__(self, base_url: Optional[str] = None, timeout: float = 120.0):
-        # Fallback to the provided default if not in settings
         self.base_url = (
             base_url
             or getattr(settings, "AGENT_API_BASE_URL", None)
-            or "https://pitch-analysis-634194827064.us-central1.run.app"
+            or settings.AGENT_API_BASE_URL
+        )
+        self.benchmark_base_url = (
+            getattr(settings, "BENCHMARK_AGENT_BASE_URL", None)
+            or settings.BENCHMARK_AGENT_BASE_URL
+        )
+        self.dealnote_base_url = (
+            getattr(settings, "DEALNOTE_AGENT_BASE_URL", None)
+            or settings.DEALNOTE_AGENT_BASE_URL
         )
         self.timeout = httpx.Timeout(60.0, read=60.0, write=60.0, connect=30.0)
 
-    async def invoke_session(self, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def invoke_session(self, app_name, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        POST /apps/startup-analyser/users/{userId}/sessions/{sessionId}
+        POST /apps//users/{userId}/sessions/{sessionId}
         """
-        url = f"{self.base_url}/apps/startup-analyser/users/{user_id}/sessions/{session_id}"
+        url = f"{self.base_url}/apps/{app_name}/users/{user_id}/sessions/{session_id}"
+        logger.info("Invoking session: url=%s user=%s session=%s", url, user_id, session_id)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(url, json=payload, headers={"accept": "application/json"})
         if resp.is_success:
+            logger.info("Session invoked successfully: %s", resp.json())
             return resp.json()
         raise RuntimeError(f"Agent session invocation failed: {self._extract_error(resp)}")
 
@@ -46,7 +56,6 @@ class AgentService:
     async def run_session_with_pdf(
         self,
         *,
-        app_name: str,
         user_id: str,
         session_id: str,
         file_bytes: bytes,
@@ -63,8 +72,25 @@ class AgentService:
         1) Invokes the session endpoint (bootstrap).
         2) Encodes the file to base64 and calls /run with inlineData.
         """
+        app_name = "startup-analyser"
+        try:
+            apps_url = f"{self.base_url}/list-apps"
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                apps_resp = await client.get(apps_url, headers={"accept": "application/json"})
+            if apps_resp.is_success:
+                data = apps_resp.json()
+                if isinstance(data, list) and data:
+                    app_name = str(data[0])
+                else:
+                    logger.warning("Unexpected list-apps response shape: %s", data)
+            else:
+                logger.warning("list-apps request failed: %s %s", apps_resp.status_code, apps_resp.text)
+        except Exception as e:
+            logger.warning("Error fetching app name from list-apps: %s", e)
+
         bootstrap = session_bootstrap_payload or {"additionalProp1": {}}
-        await self.invoke_session(user_id, session_id, bootstrap)
+
+        await self.invoke_session(app_name, user_id, session_id, bootstrap)
 
         b64 = base64.b64encode(file_bytes).decode("utf-8")
 
@@ -89,6 +115,8 @@ class AgentService:
             "newMessage": new_message,
             "streaming": streaming,
         }
+
+        print(run_payload['appName'], run_payload['userId'], run_payload['sessionId'], run_payload['streaming'])
         if state_delta:
             run_payload["stateDelta"] = state_delta
 
@@ -172,7 +200,7 @@ class AgentService:
         - Sets benchmark_status to 'STARTED'
         - Sets benchmark_job_id to the returned job_id
         """
-        url = "https://benchmark-agent-634194827064.us-central1.run.app/research"
+        url = f"{self.benchmark_base_url}/research"
         logger.info("Invoking benchmark research: url=%s", url)
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
@@ -214,7 +242,7 @@ class AgentService:
         - 'COMPLETE' if progress == 100
         Returns the progress status as a dict.
         """
-        url = f"https://benchmark-agent-634194827064.us-central1.run.app/research/{research_id}/progress"
+        url = f"{self.benchmark_base_url}/research/{research_id}/progress"
         logger.info("Getting benchmark research progress: url=%s", url)
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(
@@ -255,7 +283,7 @@ class AgentService:
         Invokes the /research/{research_id}/report endpoint on the benchmark agent.
         Returns the report as a dict.
         """
-        url = f"https://benchmark-agent-634194827064.us-central1.run.app/research/{research_id}/report"
+        url = f"{self.benchmark_base_url}/research/{research_id}/report"
         logger.info("Getting benchmark research report: url=%s", url)
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(
@@ -270,13 +298,13 @@ class AgentService:
         logger.error("Benchmark research report failed: %s", resp.text)
         raise RuntimeError(f"Benchmark research report invocation failed: {resp.text}")
 
-    async def invoke_dealnote_session(self, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def invoke_dealnote_session(self, app_name:str, user_id: str, session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         POST https://dealnote-agent-.../apps/dealnote-agent/users/{user_id}/sessions/{session_id}
         Payload is passed through as-is.
         """
-        dealnote_base = "https://dealnote-agent-634194827064.us-central1.run.app"
-        url = f"{dealnote_base}/apps/dealnote-agent/users/{user_id}/sessions/{session_id}"
+        dealnote_base = self.dealnote_base_url
+        url = f"{dealnote_base}/apps/{app_name}/users/{user_id}/sessions/{session_id}"
         logger.info("Invoking dealnote session: url=%s user=%s session=%s", url, user_id, session_id)
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(
@@ -303,13 +331,35 @@ class AgentService:
         state_delta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        POST https://dealnote-agent-.../run with the required structure.
         The payload argument is stringified and sent in newMessage.parts[0].text.
         """
-        dealnote_base = "https://dealnote-agent-634194827064.us-central1.run.app"
+        dealnote_base = self.dealnote_base_url
         url = f"{dealnote_base}/run"
+
+        app_name = "dealnote-agent"
+        try:
+            apps_url = f"{dealnote_base}/list-apps"
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                apps_resp = await client.get(
+                    apps_url,
+                    headers={"accept": "application/json"},
+                )
+            if apps_resp.is_success:
+                data = apps_resp.json()
+                if isinstance(data, list) and data:
+                    app_name = str(data[0])
+                else:
+                    logger.warning("Unexpected list-apps response shape: %s", data)
+            else:
+                logger.warning("list-apps request failed: %s %s", apps_resp.status_code, apps_resp.text)
+        except Exception as e:
+            logger.warning("Error fetching app name from dealnote list-apps: %s", e)
+
+        await self.invoke_dealnote_session(app_name, user_id, session_id, {})
+
+
         run_payload = {
-            "appName": "dealnote-agent",
+            "appName": app_name,
             "userId": user_id,
             "sessionId": session_id,
             "newMessage": {
@@ -369,8 +419,6 @@ class AgentService:
         2) Triggers /run with the provided payload
         Returns the response from /run.
         """
-        # Always use empty dict for session creation
-        await self.invoke_dealnote_session(user_id, session_id, {})
         return await self.run_dealnote_app(
             user_id=user_id,
             session_id=session_id,

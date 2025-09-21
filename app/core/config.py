@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     DEFAULT_ADMIN_EMAIL: Optional[str] = None
     DEFAULT_ADMIN_PASSWORD: Optional[str] = None
 
+    AGENT_API_BASE_URL: str
+    BENCHMARK_AGENT_BASE_URL: str
+    DEALNOTE_AGENT_BASE_URL: str
+
 settings = Settings()
 
 # Debug: Print all settings

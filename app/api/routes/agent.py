@@ -25,10 +25,9 @@ def _parse_json_field(field_value: Optional[str], field_name: str) -> Optional[D
 
 @router.post("/run-session", summary="Run agent session with a PDF")
 async def run_session_with_pdf(
-    app_name: str = Form(...),
     user_id: str = Form(...),
     session_id: str = Form(...),
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
     role: str = Form("user"),
     streaming: bool = Form(False),
@@ -46,8 +45,8 @@ async def run_session_with_pdf(
 
     start_ts = time.perf_counter()
     logger.info(
-        "run-session request: app_name=%s user_id=%s session_id=%s filename=%s content_type=%s streaming=%s",
-        app_name, user_id, session_id, file.filename, file.content_type, streaming,
+        "run-session request: user_id=%s session_id=%s filename=%s content_type=%s streaming=%s",
+        user_id, session_id, file.filename, file.content_type, streaming,
     )
 
     try:
@@ -63,7 +62,6 @@ async def run_session_with_pdf(
         logger.debug("AgentService base_url=%s timeout=%s", agent_service.base_url, agent_service.timeout)
 
         result = await agent_service.run_session_with_pdf(
-            app_name=app_name,
             user_id=user_id,
             session_id=session_id,
             file_bytes=file_bytes,
