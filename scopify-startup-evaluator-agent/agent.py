@@ -78,12 +78,15 @@ pitch_deck_extraction_agent = LlmAgent(
         2. Extract all available information that matches the schema structure
         3. For missing information, use null values or empty arrays/objects as appropriate
         4. Ensure all monetary values are numbers (floats), not strings
-        5. Ensure all dates follow proper date format (YYYY-MM-DD)
-        6. Ensure all percentages are represented as decimals (e.g., 0.15 for 15%)
-        7. Return ONLY the JSON object, no additional text or explanation
-        8. The JSON must be valid and parseable
-        9. Follow the exact field names and structure from the schema
-        10. For arrays, include all relevant items found in the content
+        5. CRITICAL: Convert all monetary values to USD - if amounts are in other currencies (EUR, GBP, INR, etc.), convert them to USD using current exchange rates or clearly state if conversion is not possible
+        6. When extracting monetary values, look for currency symbols (€, £, ¥, ₹, etc.) or currency codes (EUR, GBP, JPY, INR, etc.) and convert accordingly
+        7. For historical monetary data, use appropriate historical exchange rates when possible
+        8. Ensure all dates follow proper date format (YYYY-MM-DD)
+        9. Ensure all percentages are represented as decimals (e.g., 0.15 for 15%)
+        10. Return ONLY the JSON object, no additional text or explanation
+        11. The JSON must be valid and parseable
+        12. Follow the exact field names and structure from the schema
+        13. For arrays, include all relevant items found in the content
 
         When extracting:
         - Company information from slides about the company
