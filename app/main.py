@@ -77,6 +77,8 @@ def seed_mock_data(db: Session, file_path: str):
             )
 
 def create_app() -> FastAPI:
+    print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME}")
+    application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
     # Allow CORS only for the deployed frontend
     application.add_middleware(
         CORSMiddleware,
@@ -85,9 +87,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"] ,
         allow_headers=["*"] ,
     )
-    print(f"🚀 Starting {settings.SCOPIFY_PROJECT_NAME} in {settings.ENVIRONMENT} mode")
-    
-    application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
     
     # CORS middleware removed
     # Routers
