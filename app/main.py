@@ -17,7 +17,7 @@ from app.api.deps import get_current_user
 from app import crud, schemas
 from app.db.session import get_db
 from sqlalchemy.orm import Session
-
+from app.api.routes.flag import router as flag_router
 from app.schemas.startup import StartupCreate
 from app.schemas.company import CompanyInformationCreate
 
@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
     application.include_router(admin_router)
     application.include_router(bigquery_router)
     application.include_router(agent_router)
+    application.include_router(flag_router)
 
     return application
 

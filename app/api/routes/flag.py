@@ -10,6 +10,20 @@ from app.db.models.user import User
 
 router = APIRouter(prefix="/flags", tags=["flags"])
 
+@router.get("/grouped", response_model=list)
+def get_companies_and_flags(db: Session = Depends(get_db)):
+    """
+    Get all companies and their flags, grouped by company.
+    """
+    data = get_companies_with_flags(db)
+    # Format for response: list of dicts with company and flags
+    response = []
+    for item in data:
+        response.append({
+            "company": CompanyInformationRead.model_validate(item["company"]),
+            "flags": [FlagRead.model_validate(f) for f in item["flags"]]
+        })
+    return response
 
 @router.get("/company/{company_id}", response_model=List[FlagRead])
 def get_flags_by_company(
