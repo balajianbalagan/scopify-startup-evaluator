@@ -6,13 +6,23 @@ from app.core.security import create_access_token, create_refresh_token, decode_
 from app.crud import user as user_crud
 from app.db.session import get_db
 from app.schemas.user import LoginResponse, UserCreate, UserRead, TokenPair
+from app.api.deps import require_admin
+from app.db.models.user import User
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(
+    payload: UserCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Register a new user (Admin only).
+    Only administrators can create new user accounts.
+    """
     existing = user_crud.get_by_email(db, payload.email)
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
