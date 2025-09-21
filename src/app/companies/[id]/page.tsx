@@ -11,6 +11,7 @@ import FlagsSummary from '@/components/analysis/FlagSummary';
 import { MarkdownUI } from "@markdown-ui/react";
 import { Marked } from "marked";
 import { markedUiExtension } from "@markdown-ui/marked-ext";
+import DealNoteView from '@/components/analysis/DealNoteView';
 
 type SectionKey = 1 | 2 | 3 | 4;
 
@@ -633,6 +634,76 @@ export default function CompanyDetailsPage() {
     };
   }, [section, progress, report]);
 
+// -----------------------------
+// Deal Note generation state/UI
+// -----------------------------
+
+  const [dealNoteRunning, setDealNoteRunning] = useState(false);
+  const [dealNoteError, setDealNoteError] = useState<string | null>(null);
+  const [dealNoteResult, setDealNoteResult] = useState<any>(null);
+
+  // Parse saved deal note (if any) from company.dealnote_info
+  const savedDealNote = useMemo(() => {
+    if (!company?.dealnote_info) return null;
+    try {
+      return typeof company.dealnote_info === 'string'
+        ? JSON.parse(company.dealnote_info)
+        : company.dealnote_info;
+    } catch {
+      return null;
+    }
+  }, [company?.dealnote_info]);
+
+  useEffect(() => {
+    // If entering Deal Note section and we already have one saved, surface it
+    if (section === 4 && !dealNoteRunning && !dealNoteResult && savedDealNote) {
+      setDealNoteResult(savedDealNote);
+    }
+  }, [section, savedDealNote, dealNoteRunning, dealNoteResult]);
+
+  useEffect(() => {
+    // Reset state when leaving the Deal Note section
+    if (section !== 4) {
+      setDealNoteRunning(false);
+    }
+  }, [section]);
+
+  async function handleGenerateDealNote() {
+    if (!company) return;
+    setDealNoteError(null);
+    setDealNoteResult(null);
+    setDealNoteRunning(true);
+
+    const userId = String(company.requested_by_id ?? '0');
+    const sessionId =
+      typeof crypto !== 'undefined' && (crypto as any).randomUUID
+        ? (crypto as any).randomUUID()
+        : `deal-${Date.now()}`;
+
+    try {
+      // Send the whole company object as payload
+      const result = await agentService.runDealNoteSession(userId, sessionId, company);
+
+      // Save to backend: upload JSON into dealnote_info
+      try {
+        await startupApiService.updateCompanyInfo(company.id, {
+          dealnote_info: JSON.stringify(result),
+        });
+        // Refresh company so UI reflects persisted dealnote_info
+        const updated = await startupApiService.getCompanySearch(company.id);
+        setCompany(updated as Company);
+      } catch (persistErr: any) {
+        console.error('Failed to save deal note:', persistErr);
+      }
+
+      setDealNoteResult(result);
+    } catch (e: any) {
+      setDealNoteError(e?.message || 'Failed to generate deal note');
+    } finally {
+      setDealNoteRunning(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-[60vh] p-6 flex items-center justify-center">
@@ -902,14 +973,45 @@ export default function CompanyDetailsPage() {
               <div className="p-5 sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b">
                 <h2 className="font-semibold">4 — Generate Deal Note</h2>
                 <p className="text-sm text-gray-500">Generate AI powered deal note</p>
+                {dealNoteError && (
+                  <div className="mt-2 text-red-600 text-sm">{dealNoteError}</div>
+                )}
               </div>
               <div className="flex-1 overflow-auto nice-scroll p-5">
-                <div className="mt-1 flex gap-2">
-                  <button onClick={() => setSection(3)} className="px-3 py-1.5 border rounded-md">
-                    Back
-                  </button>
-                  <button className="px-4 py-2 bg-emerald-600 text-white rounded-md">Generate</button>
-                </div>
+                {!savedDealNote && !dealNoteResult && !dealNoteRunning && (
+                  <div className="mt-1 flex gap-2">
+                    <button onClick={() => setSection(3)} className="px-3 py-1.5 border rounded-md">
+                      Back
+                    </button>
+                    <button
+                      onClick={handleGenerateDealNote}
+                      disabled={dealNoteRunning}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-md disabled:opacity-50"
+                    >
+                      {dealNoteRunning ? 'Generating…' : 'Generate'}
+                    </button>
+                  </div>
+                )}
+
+                {dealNoteRunning && (
+                  <div className="mt-8 flex flex-col items-center justify-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-6 w-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+                      <span className="text-indigo-700 font-medium text-base">Generating your deal note…</span>
+                    </div>
+                    <div className="text-xs text-gray-500 text-center max-w-md">
+                      This may take up to a minute. We’re analyzing company data and drafting the deal note.<br />
+                      Please don’t close this tab.
+                    </div>
+                  </div>
+                )}
+
+                {(dealNoteResult || savedDealNote) && !dealNoteRunning && (
+                  <div className="mt-2">
+                    {/* Replace raw JSON with the new structured view */}
+                    <DealNoteView data={dealNoteResult || savedDealNote} />
+                  </div>
+                )}
               </div>
             </div>
           )}

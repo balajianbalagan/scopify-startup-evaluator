@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/lib/api";
 
 class AgentService {
+  
   private getAuthHeader(): HeadersInit {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -113,6 +114,35 @@ class AgentService {
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
       let message = "Agent benchmark research report failed";
+      try {
+        const j = JSON.parse(errBody);
+        message = j.detail || j.message || message;
+      } catch {
+        if (errBody) message = `${message}: ${errBody}`;
+      }
+      throw new Error(message);
+    }
+
+    return res.json();
+  }
+
+  async runDealNoteSession(userId: string, sessionId: string, payload: any): Promise<any> {
+    if (!userId) throw new Error('userId is required');
+    if (!sessionId) throw new Error('sessionId is required');
+    const url = `${API_BASE_URL}/agent/dealnote/session-run?user_id=${encodeURIComponent(userId)}&session_id=${encodeURIComponent(sessionId)}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...this.getAuthHeader(),
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(payload ?? {}),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      let message = "Agent dealnote session-run failed";
       try {
         const j = JSON.parse(errBody);
         message = j.detail || j.message || message;
