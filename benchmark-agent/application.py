@@ -114,6 +114,7 @@ async def research(data: ResearchRequest):
 async def update_progress(job_id: str, step: str, progress: int, message: str):
     """Update job progress and status"""
     job_status[job_id].update({
+        "status": "processing" if progress < 100 else "completed",
         "current_step": step,
         "progress_percentage": progress,
         "last_update": datetime.now().isoformat()
@@ -220,17 +221,32 @@ async def process_research(job_id: str, data: ResearchRequest):
         }
 
         try:
-            # Execute the complete workflow
+            # Execute the complete workflow with streaming progress updates
             compiled_graph = graph.compile()
-            final_state = await compiled_graph.ainvoke(graph.input_state)
 
-            # Update our state with the complete final state
-            state.update(final_state)
+            # Stream the graph execution to get real-time progress
+            async for chunk in compiled_graph.astream(graph.input_state):
+                for node_name, node_output in chunk.items():
+                    # Update state with node output
+                    state.update(node_output)
 
-            # Mark all steps as completed
-            for step_name, (progress, message) in step_mapping.items():
-                if step_name not in job_status[job_id]["steps_completed"]:
-                    await update_progress(job_id, step_name, progress, message)
+                    # Send progress update if this node is in our step mapping
+                    if node_name in step_mapping:
+                        progress, message = step_mapping[node_name]
+                        await update_progress(job_id, node_name, progress, message)
+                        logger.info(f"Completed step: {node_name} ({progress}%)")
+
+            # Ensure we have the final state
+            if not state:
+                # Fallback: if streaming didn't work, use the old method
+                logger.warning("Streaming returned empty state, falling back to ainvoke")
+                final_state = await compiled_graph.ainvoke(graph.input_state)
+                state.update(final_state)
+
+                # Mark all steps as completed
+                for step_name, (progress, message) in step_mapping.items():
+                    if step_name not in job_status[job_id]["steps_completed"]:
+                        await update_progress(job_id, step_name, progress, message)
 
         except Exception as e:
             logger.error(f"Error during graph execution: {str(e)}", exc_info=True)

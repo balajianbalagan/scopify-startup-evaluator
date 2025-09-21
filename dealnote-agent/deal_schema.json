@@ -1,0 +1,205 @@
+{
+  "investment_analysis_note": {
+    "header": {
+      "company_name": "string",
+      "stage": "pre-seed|seed|pre-series-a|series-a|series-b+",
+      "sector": "string",
+      "analysis_date": "ISO 8601 date",
+      "analyst": "string",
+      "deal_size": "number"
+    },
+
+    "overall_assessment": {
+      "recommendation_level": "Strong Potential|Potential|Cautious Interest|Pass",
+      "confidence_percentage": "number",
+      "one_line_thesis": "string",
+      "key_attraction": "string",
+      "primary_concern": "string"
+    },
+
+    "executive_summary": {
+      "business_model_clarity": "string",
+      "market_positioning": "string",
+      "execution_track_record": "string",
+      "financial_health_snapshot": "string",
+      "competitive_advantage": "string"
+    },
+
+    "key_metrics_dashboard": {
+      "funding_required": "number",
+      "runway_months": "number",
+      "gross_margin": "percentage",
+      "cac": "number",
+      "ltv_cac_ratio": "number",
+      "monthly_burn": "number",
+      "current_arr": "number",
+      "growth_rate_mom": "percentage"
+    },
+
+    "business_fundamentals": {
+      "revenue_quality": "string",
+      "unit_economics_health": "string",
+      "capital_efficiency": "string",
+      "scalability_factors": "string",
+      "customer_concentration": "string"
+    },
+
+    "team_and_execution": {
+      "founder_market_fit": "string",
+      "team_completeness": "string",
+      "execution_velocity": "string",
+      "hiring_trajectory": "string",
+      "operational_maturity": "string"
+    },
+
+    "market_dynamics": {
+      "market_size_reality": "string",
+      "competitive_intensity": "string",
+      "timing_assessment": "string",
+      "moat_development": "string",
+      "platform_dependencies": "string"
+    },
+
+    "risk_assessment": {
+      "execution_risks": [
+        {
+          "risk_description": "string",
+          "likelihood": "High|Medium|Low",
+          "impact_assessment": "string",
+          "mitigation_status": "string"
+        }
+      ],
+      "market_risks": [
+        {
+          "risk_description": "string",
+          "likelihood": "High|Medium|Low",
+          "impact_assessment": "string",
+          "mitigation_status": "string"
+        }
+      ],
+      "financial_risks": [
+        {
+          "risk_description": "string",
+          "likelihood": "High|Medium|Low",
+          "impact_assessment": "string",
+          "mitigation_status": "string"
+        }
+      ],
+      "regulatory_competitive_risks": [
+        {
+          "risk_description": "string",
+          "likelihood": "High|Medium|Low",
+          "impact_assessment": "string",
+          "mitigation_status": "string"
+        }
+      ]
+    },
+
+    "red_flag_analysis": {
+      "financial_concerns": [
+        {
+          "flag_type": "string",
+          "severity": "Critical|High|Medium|Low",
+          "description": "string",
+          "verification_needed": "boolean",
+          "dealbreaker_potential": "boolean"
+        }
+      ],
+      "operational_concerns": [
+        {
+          "flag_type": "string",
+          "severity": "Critical|High|Medium|Low",
+          "description": "string",
+          "verification_needed": "boolean",
+          "dealbreaker_potential": "boolean"
+        }
+      ],
+      "market_concerns": [
+        {
+          "flag_type": "string",
+          "severity": "Critical|High|Medium|Low",
+          "description": "string",
+          "verification_needed": "boolean",
+          "dealbreaker_potential": "boolean"
+        }
+      ],
+      "governance_concerns": [
+        {
+          "flag_type": "string",
+          "severity": "Critical|High|Medium|Low",
+          "description": "string",
+          "verification_needed": "boolean",
+          "dealbreaker_potential": "boolean"
+        }
+      ]
+    },
+
+    "market_benchmarking": {
+      "valuation_context": "string",
+      "growth_vs_peers": "string",
+      "unit_economics_comparison": "string",
+      "competitive_positioning": "string",
+      "exit_comparables": "string"
+    },
+
+    "investment_considerations": {
+      "bull_case_drivers": [
+        "string"
+      ],
+      "bear_case_risks": [
+        "string"
+      ],
+      "base_case_assumptions": [
+        "string"
+      ],
+      "key_value_drivers": [
+        "string"
+      ],
+      "potential_exit_paths": [
+        "string"
+      ]
+    },
+
+    "due_diligence_priorities": [
+      {
+        "area": "Financial|Legal|Commercial|Technical|Management",
+        "specific_item": "string",
+        "urgency": "Pre-Term Sheet|Pre-Closing|Post-Investment",
+        "complexity": "Low|Medium|High",
+        "potential_impact": "string"
+      }
+    ],
+
+    "investment_conditions": [
+      {
+        "condition_type": "Governance|Financial|Operational|Strategic",
+        "description": "string",
+        "criticality": "Must Have|Strongly Preferred|Nice to Have",
+        "verification_method": "string"
+      }
+    ],
+
+    "next_steps": {
+      "immediate_actions": [
+        {
+          "action": "string",
+          "owner": "string",
+          "timeline": "string",
+          "success_criteria": "string"
+        }
+      ],
+      "decision_timeline": "string",
+      "additional_information_needed": [
+        "string"
+      ]
+    },
+
+    "analyst_perspective": {
+      "investment_thesis_strength": "string",
+      "risk_return_profile": "string",
+      "portfolio_fit": "string",
+      "follow_on_potential": "string",
+      "strategic_value": "string"
+    }
+  }
+}
