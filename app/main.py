@@ -81,14 +81,7 @@ def create_app() -> FastAPI:
     
     application = FastAPI(title=settings.SCOPIFY_PROJECT_NAME)
     
-    # Add CORS middleware
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Add your frontend URL
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # CORS middleware removed
     # Routers
     application.include_router(auth_router)
     application.include_router(startup_router)
